@@ -191,7 +191,61 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
             return string.IsNullOrWhiteSpace(flags) ? quotedPath : $"{quotedPath} {flags.Trim()}";
         }
 
-        public InstallResult Uninstall(string executablePath, bool dryRun) => throw new NotImplementedException();
+        private static readonly HashSet<string> MinimalOverrideFields = new()
+        {
+            "from", "inherits", "name", "print_settings_id", "version", "is_custom_defined"
+        };
+
+        public InstallResult Uninstall(string executablePath, bool dryRun)
+        {
+            var userAccountDirs = FindUserAccountDirs();
+            int removedFiles = 0, modifiedFiles = 0;
+
+            foreach (var accountDir in userAccountDirs)
+            {
+                var processDir = Path.Combine(accountDir, "process");
+                if (!Directory.Exists(processDir)) continue;
+
+                foreach (var file in Directory.EnumerateFiles(processDir, "*.json"))
+                {
+                    var node = JsonNode.Parse(File.ReadAllText(file));
+                    var postProcess = node?["post_process"]?.AsArray();
+                    if (postProcess == null) continue;
+
+                    // Find our entries (path-agnostic partial match)
+                    var ourEntries = postProcess
+                        .Where(e => e?.GetValue<string>().Contains("Slic3rPostProcessingUploader") == true)
+                        .ToList();
+
+                    if (ourEntries.Count == 0) continue;
+
+                    foreach (var entry in ourEntries)
+                        postProcess.Remove(entry);
+
+                    // If post_process is now empty, remove the key entirely
+                    if (postProcess.Count == 0)
+                        node!.AsObject().Remove("post_process");
+
+                    // Determine if the file has any user customizations worth keeping
+                    var remainingKeys = node!.AsObject().Select(kv => kv.Key).ToHashSet();
+                    bool hasCustomizations = remainingKeys.Any(k => !MinimalOverrideFields.Contains(k));
+
+                    if (!hasCustomizations)
+                    {
+                        if (!dryRun) File.Delete(file);
+                        removedFiles++;
+                    }
+                    else
+                    {
+                        if (!dryRun)
+                            File.WriteAllText(file, node.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+                        modifiedFiles++;
+                    }
+                }
+            }
+
+            return new InstallResult(0, 0, 0, 0, removedFiles, modifiedFiles);
+        }
 
         internal record SystemProfile(string Name, string FilePath, string Version);
 

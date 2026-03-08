@@ -296,5 +296,93 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
             }
             finally { Directory.Delete(root, recursive: true); }
         }
+
+        [TestMethod]
+        public void Uninstall_DeletesFile_WhenOverrideHasNoOtherCustomizations()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+                existingPostProcess: "\"C:\\Slic3rPostProcessingUploader.exe\" --full");
+            var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+
+            try
+            {
+                var installer = new TestOrcaInstaller(configRootOverride: root);
+                var result = installer.Uninstall("C:\\Slic3rPostProcessingUploader.exe", dryRun: false);
+
+                Assert.IsFalse(File.Exists(overridePath));
+                Assert.AreEqual(1, result.RemovedFiles);
+                Assert.AreEqual(0, result.ModifiedFiles);
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void Uninstall_KeepsFile_WhenOverrideHasOtherCustomizations()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+                existingPostProcess: "\"C:\\Slic3rPostProcessingUploader.exe\" --full",
+                extraFields: new Dictionary<string, string> { ["wall_loops"] = "3" });
+            var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+
+            try
+            {
+                var installer = new TestOrcaInstaller(configRootOverride: root);
+                var result = installer.Uninstall("C:\\Slic3rPostProcessingUploader.exe", dryRun: false);
+
+                Assert.IsTrue(File.Exists(overridePath));
+                Assert.AreEqual(0, result.RemovedFiles);
+                Assert.AreEqual(1, result.ModifiedFiles);
+
+                // Our entry should be gone, post_process key removed entirely
+                var node = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(overridePath));
+                Assert.IsNull(node?["post_process"]);
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void Uninstall_LeavesOtherScripts_WhenProfileHasMultiple()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+                existingPostProcess: "C:\\other-script.exe");
+
+            // Manually add our script alongside the other
+            var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+            var node = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(overridePath))!;
+            node["post_process"]!.AsArray().Add(System.Text.Json.Nodes.JsonValue.Create("\"C:\\Slic3rPostProcessingUploader.exe\" --full"));
+            File.WriteAllText(overridePath, node.ToJsonString());
+
+            try
+            {
+                var installer = new TestOrcaInstaller(configRootOverride: root);
+                installer.Uninstall("C:\\Slic3rPostProcessingUploader.exe", dryRun: false);
+
+                var result_node = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(overridePath));
+                var postProcess = result_node!["post_process"]!.AsArray();
+                Assert.AreEqual(1, postProcess.Count);
+                Assert.IsTrue(postProcess[0]!.GetValue<string>().Contains("other-script.exe"));
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void Uninstall_DryRun_WritesNoChanges()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+                existingPostProcess: "\"C:\\Slic3rPostProcessingUploader.exe\" --full");
+            var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+            var originalContent = File.ReadAllText(overridePath);
+
+            try
+            {
+                var installer = new TestOrcaInstaller(configRootOverride: root);
+                var result = installer.Uninstall("C:\\Slic3rPostProcessingUploader.exe", dryRun: true);
+
+                Assert.AreEqual(originalContent, File.ReadAllText(overridePath));
+                // Counters still reflect what would have happened
+                Assert.AreEqual(1, result.RemovedFiles);
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
     }
 }
