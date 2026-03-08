@@ -21,11 +21,37 @@ namespace Slic3rPostProcessingUploader.Services
 
         public bool DisplayVersion { get; private set; }
 
+        public AppMode Mode { get; private set; }
+        public bool IsDryRun { get; private set; }
+
         public ArgumentParser(string[] args) {
             this.UseDefaultNoteTemplate = true;
             this.UseFullNoteTemplate = false;
             this.DisableTelemetry = false;
             this.DisplayHelp = false;
+
+            // Detect install/uninstall sub-commands first
+            if (args.Length == 0)
+            {
+                this.Mode = AppMode.Wizard;
+                return;
+            }
+
+            if (args[0] == "install")
+            {
+                this.Mode = AppMode.Install;
+                this.IsDryRun = args.Contains("--dry-run");
+                return;
+            }
+
+            if (args[0] == "uninstall")
+            {
+                this.Mode = AppMode.Uninstall;
+                this.IsDryRun = args.Contains("--dry-run");
+                return;
+            }
+
+            this.Mode = AppMode.PostProcess;
 
             // InputFile is the last argument, but only if it's not a flag
             var lastArg = args.LastOrDefault();

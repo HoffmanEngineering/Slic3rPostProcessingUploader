@@ -202,5 +202,60 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
         }
 
         #endregion
+
+        #region AppMode Tests
+
+        [TestMethod]
+        public void Constructor_WithNoArguments_SetsWizardMode()
+        {
+            var parser = new ArgumentParser([]);
+            Assert.AreEqual(AppMode.Wizard, parser.Mode);
+        }
+
+        [TestMethod]
+        public void Constructor_WithInstallSubcommand_SetsInstallMode()
+        {
+            var parser = new ArgumentParser(["install"]);
+            Assert.AreEqual(AppMode.Install, parser.Mode);
+        }
+
+        [TestMethod]
+        public void Constructor_WithUninstallSubcommand_SetsUninstallMode()
+        {
+            var parser = new ArgumentParser(["uninstall"]);
+            Assert.AreEqual(AppMode.Uninstall, parser.Mode);
+        }
+
+        [TestMethod]
+        public void Constructor_WithInstallAndDryRun_SetsDryRun()
+        {
+            var parser = new ArgumentParser(["install", "--dry-run"]);
+            Assert.AreEqual(AppMode.Install, parser.Mode);
+            Assert.IsTrue(parser.IsDryRun);
+        }
+
+        [TestMethod]
+        public void Constructor_WithUninstallAndDryRun_SetsDryRun()
+        {
+            var parser = new ArgumentParser(["uninstall", "--dry-run"]);
+            Assert.AreEqual(AppMode.Uninstall, parser.Mode);
+            Assert.IsTrue(parser.IsDryRun);
+        }
+
+        [TestMethod]
+        public void Constructor_WithGcodeFile_SetsPostProcessMode()
+        {
+            var parser = new ArgumentParser(["--full", "myfile.gcode"]);
+            Assert.AreEqual(AppMode.PostProcess, parser.Mode);
+        }
+
+        [TestMethod]
+        public void Constructor_WithInstallMode_IsDryRunDefaultsFalse()
+        {
+            var parser = new ArgumentParser(["install"]);
+            Assert.IsFalse(parser.IsDryRun);
+        }
+
+        #endregion
     }
 }
