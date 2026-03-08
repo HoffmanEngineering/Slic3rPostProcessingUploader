@@ -1,4 +1,5 @@
 using Slic3rPostProcessingUploader.Services;
+using Slic3rPostProcessingUploader.Services.Installer;
 using Slic3rPostProcessingUploader.Services.Parsers;
 using System.Collections;
 using System.Diagnostics;
@@ -46,6 +47,23 @@ try
     if (arguments.DisplayVersion)
     {
         Console.WriteLine($"Slic3rPostProcessingUploader v{new VersionService().GetVersion()}");
+        return;
+    }
+
+    // Handle install/uninstall wizard modes
+    if (arguments.Mode == AppMode.Wizard || arguments.Mode == AppMode.Install)
+    {
+        string exePath = Environment.ProcessPath ?? Environment.GetCommandLineArgs()[0];
+        var wizard = new WizardService(SlicerInstallerRegistry.All, exePath);
+        wizard.RunInstall(arguments.IsDryRun);
+        return;
+    }
+
+    if (arguments.Mode == AppMode.Uninstall)
+    {
+        string exePath = Environment.ProcessPath ?? Environment.GetCommandLineArgs()[0];
+        var wizard = new WizardService(SlicerInstallerRegistry.All, exePath);
+        wizard.RunUninstall(arguments.IsDryRun);
         return;
     }
 
