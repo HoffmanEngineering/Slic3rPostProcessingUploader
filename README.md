@@ -64,6 +64,42 @@ Mac/Linux:
 
 `--template <path>`: Use a custom note template. Absolute paths work better. See README for more details on syntax
 
+## Setup Wizard
+
+Instead of manually adding the uploader to each slicer profile, run the setup wizard to automatically inject it into all process profiles.
+
+**Windows:** Double-click `Slic3rPostProcessingUploader.exe`
+**macOS / Linux:** Run with no arguments:
+
+```bash
+./Slic3rPostProcessingUploader
+# or explicitly:
+./Slic3rPostProcessingUploader install
+```
+
+The wizard will detect installed slicers, let you choose which ones to configure, guide you through flag selection, and inject the uploader path into all process profiles automatically.
+
+### Wizard Options
+
+```bash
+# Preview what would change without writing any files
+Slic3rPostProcessingUploader install --dry-run
+
+# Remove the uploader from all profiles
+Slic3rPostProcessingUploader uninstall
+
+# Preview uninstall
+Slic3rPostProcessingUploader uninstall --dry-run
+```
+
+### Supported Slicers (Setup Wizard)
+
+| Slicer | Config directory |
+|--------|-----------------|
+| OrcaSlicer | OS-default per platform |
+| Snapmaker Orca | OS-default per platform |
+| AnycubicSlicer Next | OS-default per platform |
+
 ## Example
 
 In your Slicer's Post Processing text box, input:

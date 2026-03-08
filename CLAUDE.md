@@ -39,6 +39,21 @@ G-code file → ArgumentParser → ParserFactory → Slicer-specific Parser → 
 
 OrcaSlicer, PrusaSlicer, Bambu Studio, FLSun Slicer, Anycubic Slicer Next
 
+### Installer / Wizard
+
+- **Services/AppMode.cs**: Enum (PostProcess, Wizard, Install, Uninstall) — detected from CLI args in ArgumentParser
+- **Services/Installer/ISlicerProfileInstaller.cs**: Interface for each slicer family's installer
+- **Services/Installer/OrcaFamily/OrcaFamilyProfileInstaller.cs**: Abstract base with OS-aware config root resolution and all JSON profile logic
+- **Services/Installer/OrcaFamily/**: Concrete subclasses — OrcaSlicerInstaller, SnapmakerOrcaInstaller, AnycubicSlicerNextInstaller (one property each)
+- **Services/Installer/SlicerInstallerRegistry.cs**: Registry of all supported installers — add new slicers here
+- **Services/Installer/WizardService.cs**: Interactive terminal wizard driving the install/uninstall flow
+
+### Adding a New OrcaSlicer Fork
+
+1. Create a subclass of `OrcaFamilyProfileInstaller` in `Services/Installer/OrcaFamily/`
+2. Set `SlicerName` (display name) and `SlicerDirectoryName` (config folder name on disk, e.g. `"Snapmaker_Orca"`)
+3. Register it in `SlicerInstallerRegistry.All`
+
 ### Template System
 
 Templates use `{{setting_name}}` placeholders that get replaced with values from G-code comments like `; setting_name = value`.
