@@ -51,19 +51,14 @@ try
     }
 
     // Handle install/uninstall wizard modes
-    if (arguments.Mode == AppMode.Wizard || arguments.Mode == AppMode.Install)
+    if (arguments.Mode == AppMode.Wizard || arguments.Mode == AppMode.Install || arguments.Mode == AppMode.Uninstall)
     {
         string exePath = Environment.ProcessPath ?? Environment.GetCommandLineArgs()[0];
         var wizard = new WizardService(SlicerInstallerRegistry.All, exePath);
-        wizard.RunInstall(arguments.IsDryRun);
-        return;
-    }
-
-    if (arguments.Mode == AppMode.Uninstall)
-    {
-        string exePath = Environment.ProcessPath ?? Environment.GetCommandLineArgs()[0];
-        var wizard = new WizardService(SlicerInstallerRegistry.All, exePath);
-        wizard.RunUninstall(arguments.IsDryRun);
+        if (arguments.Mode == AppMode.Uninstall)
+            wizard.RunUninstall(arguments.IsDryRun);
+        else
+            wizard.RunInstall(arguments.IsDryRun);
         return;
     }
 
