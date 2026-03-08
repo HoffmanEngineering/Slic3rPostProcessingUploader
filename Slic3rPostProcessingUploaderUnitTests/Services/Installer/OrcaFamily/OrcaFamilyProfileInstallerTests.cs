@@ -242,5 +242,40 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
             }
             finally { Directory.Delete(root, recursive: true); }
         }
+
+        [TestMethod]
+        public void GetInstallStatus_WhenNotInstalled_ReturnsCorrectStatus()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer");
+            try
+            {
+                var installer = new TestOrcaInstaller(configRootOverride: root);
+                var status = installer.GetInstallStatus("C:\\uploader.exe");
+
+                Assert.IsFalse(status.IsInstalled);
+                Assert.AreEqual(1, status.ProfileCount);
+                Assert.AreEqual(0, status.InstalledCount);
+                Assert.IsNull(status.InstalledFlags);
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void GetInstallStatus_WhenInstalled_ReturnsInstalledCountAndFlags()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+                existingPostProcess: "\"C:\\uploader.exe\" --full");
+            try
+            {
+                var installer = new TestOrcaInstaller(configRootOverride: root);
+                var status = installer.GetInstallStatus("C:\\uploader.exe");
+
+                Assert.IsTrue(status.IsInstalled);
+                Assert.AreEqual(1, status.ProfileCount);
+                Assert.AreEqual(1, status.InstalledCount);
+                Assert.AreEqual("--full", status.InstalledFlags);
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
     }
 }

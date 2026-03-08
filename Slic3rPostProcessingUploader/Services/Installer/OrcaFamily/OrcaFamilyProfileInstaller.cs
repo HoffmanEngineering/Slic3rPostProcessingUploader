@@ -45,7 +45,71 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
 
         public bool IsDetected() => Directory.Exists(GetConfigRoot());
 
-        public SlicerInstallStatus GetInstallStatus(string executablePath) => throw new NotImplementedException();
+        public SlicerInstallStatus GetInstallStatus(string executablePath)
+        {
+            var systemProfiles = FindSelectableSystemProfiles();
+            var userAccountDirs = FindUserAccountDirs();
+
+            int totalProfiles = systemProfiles.Count;
+            int installedCount = 0;
+            string? detectedFlags = null;
+
+            foreach (var systemProfile in systemProfiles)
+            {
+                foreach (var accountDir in userAccountDirs)
+                {
+                    var overridePath = Path.Combine(accountDir, "process", systemProfile.Name + ".json");
+                    if (!File.Exists(overridePath)) continue;
+
+                    var node = JsonNode.Parse(File.ReadAllText(overridePath));
+                    var postProcess = node?["post_process"]?.AsArray();
+                    if (postProcess == null) continue;
+
+                    var ourEntry = postProcess
+                        .Select(e => e?.GetValue<string>())
+                        .FirstOrDefault(e => e?.Contains(executablePath) == true);
+
+                    if (ourEntry != null)
+                    {
+                        installedCount++;
+                        if (detectedFlags == null)
+                            detectedFlags = ExtractFlags(ourEntry);
+                    }
+                }
+            }
+
+            return new SlicerInstallStatus(
+                IsInstalled: installedCount > 0,
+                ProfileCount: totalProfiles,
+                InstalledCount: installedCount,
+                InstalledFlags: detectedFlags);
+        }
+
+        private static string? ExtractFlags(string scriptEntry)
+        {
+            // Script entry is either:
+            //   "C:\path\uploader.exe" --flags
+            //   C:\path\uploader.exe --flags
+            // Extract everything after the exe path
+
+            string remaining;
+            if (scriptEntry.StartsWith('"'))
+            {
+                // Quoted path: find closing quote
+                var closeQuote = scriptEntry.IndexOf('"', 1);
+                if (closeQuote < 0) return null;
+                remaining = scriptEntry[(closeQuote + 1)..].Trim();
+            }
+            else
+            {
+                // Unquoted path: find first space
+                var space = scriptEntry.IndexOf(' ');
+                if (space < 0) return null;
+                remaining = scriptEntry[space..].Trim();
+            }
+
+            return string.IsNullOrWhiteSpace(remaining) ? null : remaining;
+        }
 
         public InstallResult Install(string executablePath, string flags, bool dryRun)
         {
