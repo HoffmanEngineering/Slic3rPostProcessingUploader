@@ -256,6 +256,14 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
             Assert.IsFalse(parser.IsDryRun);
         }
 
+        [TestMethod]
+        public void Constructor_WithInstallAndExtraArgs_InputFileRemainsNull()
+        {
+            var parser = new ArgumentParser(["install", "myfile.gcode", "--full"]);
+            Assert.AreEqual(AppMode.Install, parser.Mode);
+            Assert.IsNull(parser.InputFile);
+        }
+
         #endregion
     }
 }
