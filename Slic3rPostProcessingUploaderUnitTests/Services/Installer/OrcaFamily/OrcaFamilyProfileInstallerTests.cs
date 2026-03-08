@@ -105,5 +105,142 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
                 Directory.Delete(root, recursive: true);
             }
         }
+
+        private static string BuildTempConfigDirWithUserOverride(
+            string profileName,
+            string? existingPostProcess = null,
+            Dictionary<string, string>? extraFields = null)
+        {
+            var root = Path.Combine(Path.GetTempPath(), "TestSlicer_" + Guid.NewGuid());
+            var systemProcessDir = Path.Combine(root, "system", "Vendor", "process");
+            var userProcessDir = Path.Combine(root, "user", "default", "process");
+            Directory.CreateDirectory(systemProcessDir);
+            Directory.CreateDirectory(userProcessDir);
+
+            File.WriteAllText(
+                Path.Combine(systemProcessDir, $"{profileName}.json"),
+                $$"""{"name": "{{profileName}}", "instantiation": "true", "from": "system", "version": "2.0.0"}""");
+
+            if (existingPostProcess != null || extraFields != null)
+            {
+                var node = new System.Text.Json.Nodes.JsonObject
+                {
+                    ["from"] = "User",
+                    ["inherits"] = profileName,
+                    ["name"] = profileName,
+                    ["print_settings_id"] = profileName,
+                    ["version"] = "2.0.0"
+                };
+                if (existingPostProcess != null)
+                {
+                    node["post_process"] = new System.Text.Json.Nodes.JsonArray(
+                        System.Text.Json.Nodes.JsonValue.Create(existingPostProcess));
+                }
+                if (extraFields != null)
+                {
+                    foreach (var kv in extraFields)
+                        node[kv.Key] = kv.Value;
+                }
+                File.WriteAllText(
+                    Path.Combine(userProcessDir, $"{profileName}.json"),
+                    node.ToJsonString());
+            }
+
+            return root;
+        }
+
+        [TestMethod]
+        public void Install_CreatesUserOverride_WhenNoneExists()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer");
+            try
+            {
+                var installer = new TestOrcaInstaller(configRootOverride: root);
+                var result = installer.Install("C:\\uploader.exe", "--full", dryRun: false);
+
+                Assert.AreEqual(1, result.Created);
+                Assert.AreEqual(0, result.Updated);
+
+                var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+                Assert.IsTrue(File.Exists(overridePath));
+
+                var node = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(overridePath));
+                var postProcess = node!["post_process"]!.AsArray();
+                Assert.AreEqual(1, postProcess.Count);
+                Assert.IsTrue(postProcess[0]!.GetValue<string>().Contains("uploader.exe"));
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void Install_UpdatesUserOverride_WhenOverrideExistsWithoutOurScript()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+                existingPostProcess: "C:\\other-script.exe");
+            try
+            {
+                var installer = new TestOrcaInstaller(configRootOverride: root);
+                var result = installer.Install("C:\\uploader.exe", "--full", dryRun: false);
+
+                Assert.AreEqual(0, result.Created);
+                Assert.AreEqual(1, result.Updated);
+                Assert.AreEqual(1, result.WithOtherScripts);
+
+                var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+                var node = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(overridePath));
+                var postProcess = node!["post_process"]!.AsArray();
+                Assert.AreEqual(2, postProcess.Count); // other script + ours
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void Install_SkipsProfile_WhenOurScriptAlreadyPresent()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+                existingPostProcess: "C:\\Slic3rPostProcessingUploader.exe --full");
+            try
+            {
+                var installer = new TestOrcaInstaller(configRootOverride: root);
+                var result = installer.Install("C:\\Slic3rPostProcessingUploader.exe", "--full", dryRun: false);
+
+                Assert.AreEqual(0, result.Created);
+                Assert.AreEqual(0, result.Updated);
+                Assert.AreEqual(1, result.Skipped);
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void Install_DryRun_WritesNoFiles()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer");
+            try
+            {
+                var installer = new TestOrcaInstaller(configRootOverride: root);
+                installer.Install("C:\\uploader.exe", "--full", dryRun: true);
+
+                var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+                Assert.IsFalse(File.Exists(overridePath));
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void Install_QuotesExePath_WhenPathContainsSpaces()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer");
+            try
+            {
+                var installer = new TestOrcaInstaller(configRootOverride: root);
+                installer.Install("C:\\My Tools\\uploader.exe", "--full", dryRun: false);
+
+                var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+                var node = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(overridePath));
+                var entry = node!["post_process"]!.AsArray()[0]!.GetValue<string>();
+                Assert.IsTrue(entry.StartsWith("\"C:\\My Tools\\uploader.exe\""));
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
     }
 }

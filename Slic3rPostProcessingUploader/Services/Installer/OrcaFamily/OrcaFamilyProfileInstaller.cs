@@ -1,5 +1,6 @@
 using Slic3rPostProcessingUploader.Services.Installer;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
@@ -45,7 +46,87 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
         public bool IsDetected() => Directory.Exists(GetConfigRoot());
 
         public SlicerInstallStatus GetInstallStatus(string executablePath) => throw new NotImplementedException();
-        public InstallResult Install(string executablePath, string flags, bool dryRun) => throw new NotImplementedException();
+
+        public InstallResult Install(string executablePath, string flags, bool dryRun)
+        {
+            string scriptEntry = BuildScriptEntry(executablePath, flags);
+            var systemProfiles = FindSelectableSystemProfiles();
+            var userAccountDirs = FindUserAccountDirs();
+
+            int created = 0, updated = 0, skipped = 0, withOtherScripts = 0;
+
+            foreach (var systemProfile in systemProfiles)
+            {
+                foreach (var accountDir in userAccountDirs)
+                {
+                    var processDir = Path.Combine(accountDir, "process");
+                    var overridePath = Path.Combine(processDir, systemProfile.Name + ".json");
+
+                    if (File.Exists(overridePath))
+                    {
+                        var node = JsonNode.Parse(File.ReadAllText(overridePath));
+                        if (node == null) continue;
+
+                        var postProcess = node["post_process"]?.AsArray();
+
+                        // Check if our script is already present (partial match)
+                        if (postProcess != null && postProcess.Any(e =>
+                            e?.GetValue<string>().Contains("Slic3rPostProcessingUploader") == true))
+                        {
+                            skipped++;
+                            continue;
+                        }
+
+                        // Count other scripts
+                        if (postProcess != null && postProcess.Count > 0)
+                            withOtherScripts++;
+
+                        if (!dryRun)
+                        {
+                            if (postProcess == null)
+                            {
+                                node["post_process"] = new JsonArray(JsonValue.Create(scriptEntry));
+                            }
+                            else
+                            {
+                                postProcess.Add(JsonValue.Create(scriptEntry));
+                            }
+                            Directory.CreateDirectory(processDir);
+                            File.WriteAllText(overridePath, node.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+                        }
+                        updated++;
+                    }
+                    else
+                    {
+                        if (!dryRun)
+                        {
+                            Directory.CreateDirectory(processDir);
+                            var newOverride = new JsonObject
+                            {
+                                ["from"] = "User",
+                                ["inherits"] = systemProfile.Name,
+                                ["name"] = systemProfile.Name,
+                                ["post_process"] = new JsonArray(JsonValue.Create(scriptEntry)),
+                                ["print_settings_id"] = systemProfile.Name,
+                                ["version"] = systemProfile.Version
+                            };
+                            File.WriteAllText(overridePath, newOverride.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+                        }
+                        created++;
+                    }
+                }
+            }
+
+            return new InstallResult(created, updated, skipped, withOtherScripts, 0, 0);
+        }
+
+        private static string BuildScriptEntry(string executablePath, string flags)
+        {
+            bool needsQuotes = executablePath.Contains(' ');
+            string quotedPath = needsQuotes ? $"\"{executablePath}\"" : executablePath;
+            return string.IsNullOrWhiteSpace(flags) ? quotedPath : $"{quotedPath} {flags.Trim()}";
+        }
+
         public InstallResult Uninstall(string executablePath, bool dryRun) => throw new NotImplementedException();
 
         internal record SystemProfile(string Name, string FilePath, string Version);
