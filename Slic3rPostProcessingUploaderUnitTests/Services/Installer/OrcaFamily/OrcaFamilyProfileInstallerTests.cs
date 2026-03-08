@@ -264,14 +264,33 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
         public void GetInstallStatus_WhenInstalled_ReturnsInstalledCountAndFlags()
         {
             var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
-                existingPostProcess: "\"C:\\uploader.exe\" --full");
+                existingPostProcess: "\"C:\\tools\\Slic3rPostProcessingUploader.exe\" --full");
             try
             {
                 var installer = new TestOrcaInstaller(configRootOverride: root);
-                var status = installer.GetInstallStatus("C:\\uploader.exe");
+                var status = installer.GetInstallStatus("C:\\tools\\Slic3rPostProcessingUploader.exe");
 
                 Assert.IsTrue(status.IsInstalled);
                 Assert.AreEqual(1, status.ProfileCount);
+                Assert.AreEqual(1, status.InstalledCount);
+                Assert.AreEqual("--full", status.InstalledFlags);
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void GetInstallStatus_DetectsInstall_EvenWhenPathDiffersFromCurrent()
+        {
+            // Installed from path A, checking status with path B
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+                existingPostProcess: "\"C:\\old-path\\Slic3rPostProcessingUploader.exe\" --full");
+            try
+            {
+                var installer = new TestOrcaInstaller(configRootOverride: root);
+                // Checking with a completely different path
+                var status = installer.GetInstallStatus("D:\\new-path\\Slic3rPostProcessingUploader.exe");
+
+                Assert.IsTrue(status.IsInstalled);
                 Assert.AreEqual(1, status.InstalledCount);
                 Assert.AreEqual("--full", status.InstalledFlags);
             }

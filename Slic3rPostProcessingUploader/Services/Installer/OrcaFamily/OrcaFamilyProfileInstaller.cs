@@ -67,7 +67,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
 
                     var ourEntry = postProcess
                         .Select(e => e?.GetValue<string>())
-                        .FirstOrDefault(e => e?.Contains(executablePath) == true);
+                        .FirstOrDefault(e => e?.Contains("Slic3rPostProcessingUploader") == true);
 
                     if (ourEntry != null)
                     {
