@@ -174,7 +174,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
                                 ["name"] = overrideName,
                                 ["post_process"] = new JsonArray(JsonValue.Create(scriptEntry)),
                                 ["print_settings_id"] = overrideName,
-                                ["version"] = systemProfile.Version
+                                ["version"] = string.IsNullOrEmpty(systemProfile.Version) ? "1.0.0.0" : systemProfile.Version
                             };
                             File.WriteAllText(overridePath, newOverride.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
                         }
