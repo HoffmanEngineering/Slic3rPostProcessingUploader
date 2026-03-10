@@ -289,8 +289,9 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
         [TestMethod]
         public void GetInstallStatus_WhenInstalled_ReturnsInstalledCountAndFlags()
         {
-            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
-                existingPostProcess: "\"C:\\tools\\Slic3rPostProcessingUploader.exe\" --full");
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer");
+            var suffixedPath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
+            File.WriteAllText(suffixedPath, """{"from":"User","inherits":"0.20mm Standard @Printer","name":"0.20mm Standard @Printer - 3DPrintLog","post_process":["\"C:\\tools\\Slic3rPostProcessingUploader.exe\" --full"],"print_settings_id":"0.20mm Standard @Printer - 3DPrintLog","version":"2.0.0"}""");
             try
             {
                 var installer = new TestOrcaInstaller(configRootOverride: root);
@@ -308,8 +309,9 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
         public void GetInstallStatus_DetectsInstall_EvenWhenPathDiffersFromCurrent()
         {
             // Installed from path A, checking status with path B
-            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
-                existingPostProcess: "\"C:\\old-path\\Slic3rPostProcessingUploader.exe\" --full");
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer");
+            var suffixedPath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
+            File.WriteAllText(suffixedPath, """{"from":"User","inherits":"0.20mm Standard @Printer","name":"0.20mm Standard @Printer - 3DPrintLog","post_process":["\"C:\\old-path\\Slic3rPostProcessingUploader.exe\" --full"],"print_settings_id":"0.20mm Standard @Printer - 3DPrintLog","version":"2.0.0"}""");
             try
             {
                 var installer = new TestOrcaInstaller(configRootOverride: root);

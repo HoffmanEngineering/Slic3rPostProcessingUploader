@@ -59,7 +59,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
             {
                 foreach (var accountDir in userAccountDirs)
                 {
-                    var overridePath = Path.Combine(accountDir, "process", systemProfile.Name + ".json");
+                    var overridePath = Path.Combine(accountDir, "process", systemProfile.Name + ProfileNameSuffix + ".json");
                     if (!File.Exists(overridePath)) continue;
 
                     var node = JsonNode.Parse(File.ReadAllText(overridePath));
