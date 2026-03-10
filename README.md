@@ -92,6 +92,12 @@ Slic3rPostProcessingUploader uninstall
 Slic3rPostProcessingUploader uninstall --dry-run
 ```
 
+### Important: Add Your Printers First
+
+For OrcaSlicer-family slicers, vendor-specific process profiles (e.g. TwoTrees, Bambu) are only downloaded when you add a printer through the slicer's setup wizard. **Add all your printers in the slicer before running the install wizard**, otherwise those vendor profiles won't be picked up.
+
+If you add a new printer after running the wizard, simply run `install` again — it will detect the new profiles and update them without touching the ones already configured.
+
 ### Supported Slicers (Setup Wizard)
 
 | Slicer | Config directory |
