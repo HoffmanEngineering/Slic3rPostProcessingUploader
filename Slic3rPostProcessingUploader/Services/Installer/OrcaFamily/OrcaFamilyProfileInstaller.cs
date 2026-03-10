@@ -7,6 +7,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
 {
     internal abstract class OrcaFamilyProfileInstaller : ISlicerProfileInstaller
     {
+        private const string ProfileNameSuffix = " - 3DPrintLog";
         private readonly string? _configRootOverride;
 
         public abstract string SlicerName { get; }
@@ -124,7 +125,8 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
                 foreach (var accountDir in userAccountDirs)
                 {
                     var processDir = Path.Combine(accountDir, "process");
-                    var overridePath = Path.Combine(processDir, systemProfile.Name + ".json");
+                    string overrideName = systemProfile.Name + ProfileNameSuffix;
+                    var overridePath = Path.Combine(processDir, overrideName + ".json");
 
                     if (File.Exists(overridePath))
                     {
@@ -169,9 +171,9 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
                             {
                                 ["from"] = "User",
                                 ["inherits"] = systemProfile.Name,
-                                ["name"] = systemProfile.Name,
+                                ["name"] = overrideName,
                                 ["post_process"] = new JsonArray(JsonValue.Create(scriptEntry)),
-                                ["print_settings_id"] = systemProfile.Name,
+                                ["print_settings_id"] = overrideName,
                                 ["version"] = systemProfile.Version
                             };
                             File.WriteAllText(overridePath, newOverride.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));

@@ -161,13 +161,15 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
                 Assert.AreEqual(1, result.Created);
                 Assert.AreEqual(0, result.Updated);
 
-                var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+                var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
                 Assert.IsTrue(File.Exists(overridePath));
 
                 var node = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(overridePath));
                 var postProcess = node!["post_process"]!.AsArray();
                 Assert.AreEqual(1, postProcess.Count);
                 Assert.IsTrue(postProcess[0]!.GetValue<string>().Contains("uploader.exe"));
+                Assert.AreEqual("0.20mm Standard @Printer - 3DPrintLog", node!["name"]!.GetValue<string>());
+                Assert.AreEqual("0.20mm Standard @Printer", node!["inherits"]!.GetValue<string>());
             }
             finally { Directory.Delete(root, recursive: true); }
         }
@@ -175,8 +177,20 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
         [TestMethod]
         public void Install_UpdatesUserOverride_WhenOverrideExistsWithoutOurScript()
         {
-            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
-                existingPostProcess: "C:\\other-script.exe");
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer");
+            // Manually create the suffixed file with the other script
+            var suffixedPath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
+            var existingNode = new System.Text.Json.Nodes.JsonObject
+            {
+                ["from"] = "User",
+                ["inherits"] = "0.20mm Standard @Printer",
+                ["name"] = "0.20mm Standard @Printer - 3DPrintLog",
+                ["post_process"] = new System.Text.Json.Nodes.JsonArray(
+                    System.Text.Json.Nodes.JsonValue.Create("C:\\other-script.exe")),
+                ["print_settings_id"] = "0.20mm Standard @Printer - 3DPrintLog",
+                ["version"] = "2.0.0"
+            };
+            File.WriteAllText(suffixedPath, existingNode.ToJsonString());
             try
             {
                 var installer = new TestOrcaInstaller(configRootOverride: root);
@@ -186,7 +200,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
                 Assert.AreEqual(1, result.Updated);
                 Assert.AreEqual(1, result.WithOtherScripts);
 
-                var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+                var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
                 var node = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(overridePath));
                 var postProcess = node!["post_process"]!.AsArray();
                 Assert.AreEqual(2, postProcess.Count); // other script + ours
@@ -197,8 +211,20 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
         [TestMethod]
         public void Install_SkipsProfile_WhenOurScriptAlreadyPresent()
         {
-            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
-                existingPostProcess: "C:\\Slic3rPostProcessingUploader.exe --full");
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer");
+            // Manually create the suffixed file with our script already present
+            var suffixedPath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
+            var existingNode = new System.Text.Json.Nodes.JsonObject
+            {
+                ["from"] = "User",
+                ["inherits"] = "0.20mm Standard @Printer",
+                ["name"] = "0.20mm Standard @Printer - 3DPrintLog",
+                ["post_process"] = new System.Text.Json.Nodes.JsonArray(
+                    System.Text.Json.Nodes.JsonValue.Create("C:\\Slic3rPostProcessingUploader.exe --full")),
+                ["print_settings_id"] = "0.20mm Standard @Printer - 3DPrintLog",
+                ["version"] = "2.0.0"
+            };
+            File.WriteAllText(suffixedPath, existingNode.ToJsonString());
             try
             {
                 var installer = new TestOrcaInstaller(configRootOverride: root);
@@ -220,7 +246,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
                 var installer = new TestOrcaInstaller(configRootOverride: root);
                 installer.Install("C:\\uploader.exe", "--full", dryRun: true);
 
-                var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+                var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
                 Assert.IsFalse(File.Exists(overridePath));
             }
             finally { Directory.Delete(root, recursive: true); }
@@ -235,7 +261,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
                 var installer = new TestOrcaInstaller(configRootOverride: root);
                 installer.Install("C:\\My Tools\\uploader.exe", "--full", dryRun: false);
 
-                var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+                var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
                 var node = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(overridePath));
                 var entry = node!["post_process"]!.AsArray()[0]!.GetValue<string>();
                 Assert.IsTrue(entry.StartsWith("\"C:\\My Tools\\uploader.exe\""));
