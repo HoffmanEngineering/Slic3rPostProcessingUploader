@@ -248,6 +248,15 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
                                              .Select(x => double.Parse(x.Trim()))
                                              .ToList();
 
+            string filamentWeight = ParseSettingAsString(gcode, "; " + FilamentWeightKey);
+            List<double> weights = new List<double>();
+            if (!string.IsNullOrEmpty(filamentWeight))
+            {
+                weights = filamentWeight.Split(',')
+                                        .Select(x => double.Parse(x.Trim()))
+                                        .ToList();
+            }
+
             for (int i = 0; i < usage.Count; i++)
             {
                 if (usage[i] == 0)
@@ -255,10 +264,17 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
                     continue;
                 }
 
+                bool hasWeight = i < weights.Count && weights[i] > 0;
+
                 PrintFilamentSummaryDto filamentUsage = new PrintFilamentSummaryDto
                 {
-                    EstimatedSource = PrintFilamentSourceMeasurement.Length,
+                    EstimatedSource = hasWeight
+                        ? PrintFilamentSourceMeasurement.Weight
+                        : PrintFilamentSourceMeasurement.Length,
                     EstimatedLengthInM = Math.Round(usage[i] / 1000, 3),
+                    EstimatedAmountMg = hasWeight
+                        ? Math.Round(weights[i] * 1000)
+                        : null,
                     Id = null,
                     Notes = string.Empty,
                     Source = PrintFilamentSourceMeasurement.Length,
