@@ -5,6 +5,19 @@ on: [push]
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
+# Read-only. This workflow restores, builds, tests and uploads an artifact; none of
+# that writes to the repository. An explicit block also pins the scope against the
+# repository-wide default, which is a setting that can change outside this file.
+permissions:
+  contents: read
+
+# The build matrix is nine jobs across Linux, Windows and macOS runners, so a superseded
+# run is an expensive thing to leave running. This workflow triggers on every push with
+# no branch filter, which makes that easy to hit.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: ${{ matrix.platform.name }} ${{ matrix.dotnet.name }}
