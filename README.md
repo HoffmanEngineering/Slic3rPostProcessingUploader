@@ -122,3 +122,11 @@ I used these settings:
 - Use Adaptive Pressure Advance: 0
 - Acceleration to Deceleration: 50%
 ```
+
+## Questions & Discussions
+
+Usage questions are best asked in [**3D Print Log Discussions**](https://github.com/HoffmanEngineering/3d-print-log-ui/discussions/categories/q-a). That board is the front door for the whole project — the web app, the API, and both slicer plugins — so you do not have to work out which repository your question belongs to, and answers stay searchable for whoever asks next.
+
+If a slicer is reporting a value incorrectly, that is almost always this uploader rather than the API. Attaching the G-code header (or the whole file) to an issue is the single most useful thing you can include.
+
+Bug reports and feature requests belong in this repository's issues.
