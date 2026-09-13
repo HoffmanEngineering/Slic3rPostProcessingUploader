@@ -47,10 +47,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
       - name: Setup .NET ${{ matrix.dotnet.version }} SDK
         id: setup-dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet.version }}
       - name: Enforce SDK Version
@@ -66,7 +66,7 @@ jobs:
       - name: Publish
         run: dotnet publish --configuration Release
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: publish-${{ matrix.platform.name }}-${{ matrix.dotnet.name }}
           path: ${{ matrix.platform.filepath }}
