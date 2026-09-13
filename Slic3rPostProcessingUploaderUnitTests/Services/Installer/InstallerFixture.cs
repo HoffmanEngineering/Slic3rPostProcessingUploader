@@ -5,16 +5,21 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer;
 /// <summary>
 /// A scratch copy of one of the real slicer config trees under <c>TestData/Installer/{slicer}</c>.
 /// The trees are pruned copies of genuine <c>%APPDATA%</c> folders (system process profiles plus every
-/// user process profile), so the installer is exercised against the layouts and hand-made profiles it
-/// will actually meet. Disposing deletes the copy.
+/// user process profile) plus one fresh Linux install, so the installer is exercised against the layouts and
+/// hand-made profiles it will actually meet. Disposing deletes the copy.
 /// </summary>
 internal sealed class InstallerFixture : IDisposable
 {
     public const string OrcaSlicer = "OrcaSlicer";
     public const string SnapmakerOrca = "Snapmaker_Orca";
     public const string AnycubicSlicerNext = "AnycubicSlicerNext";
+    /// <summary>OrcaSlicer 2.4.2 on Ubuntu 24.04 straight after the setup wizard (Custom + Afinia); no user profiles yet.</summary>
+    public const string OrcaSlicerLinuxFresh = "OrcaSlicer-linux-fresh";
 
-    public static readonly string[] All = [OrcaSlicer, SnapmakerOrca, AnycubicSlicerNext];
+    public static readonly string[] All = [OrcaSlicer, SnapmakerOrca, AnycubicSlicerNext, OrcaSlicerLinuxFresh];
+
+    /// <summary>The Windows trees, each carrying hand-made "… - 3D Print Log" profiles that already run the uploader.</summary>
+    public static readonly string[] WithHandMadeProfiles = [OrcaSlicer, SnapmakerOrca, AnycubicSlicerNext];
 
     public string Slicer { get; }
     public string Root { get; }

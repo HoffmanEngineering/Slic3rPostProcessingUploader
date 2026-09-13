@@ -25,6 +25,7 @@ public class OrcaFamilyInstallerFixtureTests
     }
 
     private static IEnumerable<object[]> Slicers => InstallerFixture.All.Select(s => new object[] { s });
+    private static IEnumerable<object[]> SlicersWithHandMadeProfiles => InstallerFixture.WithHandMadeProfiles.Select(s => new object[] { s });
 
     /// <summary>One hand-made profile per fixture: (slicer, the system profile it inherits, its file name).</summary>
     private static IEnumerable<object[]> HandMadeProfiles =>
@@ -64,7 +65,7 @@ public class OrcaFamilyInstallerFixtureTests
         Assert.AreEqual(systemProfiles.Count * accounts.Count, result.Created + result.Updated + result.Skipped + result.CoveredByHandMade,
             "Every (system profile × user account) pair must be accounted for exactly once.");
         Assert.AreEqual(0, result.Unreadable);
-        Assert.IsTrue(result.CoveredByHandMade > 0, "Every fixture carries hand-made uploader profiles.");
+        Assert.AreEqual(InstallerFixture.WithHandMadeProfiles.Contains(slicer), result.CoveredByHandMade > 0);
 
         foreach (string account in accounts)
         {
@@ -96,7 +97,7 @@ public class OrcaFamilyInstallerFixtureTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(Slicers))]
+    [DynamicData(nameof(SlicersWithHandMadeProfiles))]
     public void Install_OnRealTree_OnlyEditsTheUploaderPathInsidePreExistingFiles(string slicer)
     {
         using var fixture = InstallerFixture.Copy(slicer);
@@ -200,7 +201,7 @@ public class OrcaFamilyInstallerFixtureTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(Slicers))]
+    [DynamicData(nameof(SlicersWithHandMadeProfiles))]
     public void Uninstall_OnRealTree_WithoutPriorInstallLeavesHandMadeProfilesAndReportsThem(string slicer)
     {
         using var fixture = InstallerFixture.Copy(slicer);

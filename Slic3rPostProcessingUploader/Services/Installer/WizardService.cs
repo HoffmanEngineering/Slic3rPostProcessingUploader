@@ -21,8 +21,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer
             if (detected.Count == 0)
             {
                 Console.WriteLine("No supported slicers found on this machine.");
-                Console.WriteLine("\nPress any key to exit.");
-                Console.ReadKey();
+                PauseBeforeExit();
                 return;
             }
 
@@ -93,8 +92,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer
             else
                 Console.WriteLine("Setup complete!");
 
-            Console.WriteLine("\nPress any key to exit.");
-            Console.ReadKey();
+            PauseBeforeExit();
         }
 
         public void RunUninstall(bool dryRun)
@@ -140,8 +138,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer
             else
                 Console.WriteLine("Uninstall complete!");
 
-            Console.WriteLine("\nPress any key to exit.");
-            Console.ReadKey();
+            PauseBeforeExit();
         }
 
         private static string PromptForFlags()
@@ -179,6 +176,19 @@ namespace Slic3rPostProcessingUploader.Services.Installer
         {
             Console.WriteLine("3D Print Log Uploader - Setup Wizard");
             Console.WriteLine("=====================================");
+        }
+
+        /// <summary>
+        /// Double-clicking the executable opens a console that closes on exit, so give the user a chance to read
+        /// the summary. When input is piped (scripts, tests) ReadKey would throw, so exit straight away instead.
+        /// </summary>
+        private static void PauseBeforeExit()
+        {
+            if (Console.IsInputRedirected || Console.IsOutputRedirected)
+                return;
+
+            Console.WriteLine("\nPress any key to exit.");
+            Console.ReadKey(intercept: true);
         }
     }
 }
