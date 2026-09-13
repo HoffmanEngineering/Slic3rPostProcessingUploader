@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace Slic3rPostProcessingUploader.Services.Parsers
@@ -291,9 +292,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
                 return filament;
             }
 
-            List<double> usage = filamentUsed.Split(',')
-                                             .Select(x => double.Parse(x.Trim()))
-                                             .ToList();
+            List<double> usage = ParseNumberList(filamentUsed);
 
             // Colours and types are per-slot lists aligned with the usage list. Slicers separate them with ';'.
             var colours = SplitFilamentList(settings.Get("filament_colour"));
@@ -328,7 +327,9 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
 
         private static List<string> SplitFilamentList(string value)
         {
+            // PrusaSlicer 3.x writes an unset string value as a pair of quotes, so strip them per entry.
             return value.Split([';', ','], StringSplitOptions.TrimEntries)
+                        .Select(x => x.Trim('"'))
                         .ToList();
         }
 
@@ -357,7 +358,8 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         public double? EstimateFilamentUsageInMg(GcodeSettings settings)
         {
             // Check to see if the user setup their filament densities, thus we can directly return filament usage.
-            var filamentUsedInGrams = ParseSettingAsNumber(settings, FilamentWeightKey);
+            // Multi-extruder exports (e.g. PrusaSlicer MMU/XL) write one value per slot, so the slots are summed.
+            var filamentUsedInGrams = ParseNumberList(settings.Get(FilamentWeightKey)).Sum();
             if (filamentUsedInGrams > 0)
             {
                 return filamentUsedInGrams * 1000;
@@ -365,20 +367,24 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
 
             var filamentType = settings.Get("filament_type");
             // Try and grab the first diameter
-            if (!double.TryParse(settings.Get("filament_diameter").Split(',')[0], out var filamentDiameter))
+            var filamentDiameter = ParseNumberList(settings.Get("filament_diameter")).FirstOrDefault();
+            if (filamentDiameter <= 0)
             {
                 return 0;
             }
 
-            if (!double.TryParse(settings.Get(FilamentLengthKey), out var filamentUsageLengthInMM))
+            // This path only runs when the per-slot breakdown is unavailable, so the first slot's length is used.
+            var filamentUsageLengthInMM = ParseNumberList(settings.Get(FilamentLengthKey)).FirstOrDefault();
+            if (filamentUsageLengthInMM <= 0)
             {
                 return 0;
             }
 
             // Every supported slicer writes the density the user configured for the loaded filament(s), so prefer
             // that over guessing from the material name. Multi-filament prints write a comma-separated list; the
-            // first slot is used here since this path only runs when there is a single combined usage figure.
-            if (double.TryParse(settings.Get("filament_density").Split(',')[0], out var filamentDensity) && filamentDensity > 0)
+            // first slot is used here to match the length above.
+            var filamentDensity = ParseNumberList(settings.Get("filament_density")).FirstOrDefault();
+            if (filamentDensity > 0)
             {
                 return CalculateWeightInMg(filamentDensity, filamentUsageLengthInMM, filamentDiameter);
             }
@@ -413,10 +419,20 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
             return Math.Floor(weightInGrams * 1000);
         }
 
-        protected static double ParseSettingAsNumber(GcodeSettings settings, string settingName)
+        /// <summary>
+        /// Parses a comma-separated list of numbers such as "4.53, 0.00, 2.51". Entries that are not numeric become 0
+        /// so a malformed line never throws; an empty value yields an empty list.
+        /// </summary>
+        protected static List<double> ParseNumberList(string value)
         {
-            var value = settings.Get(settingName);
-            return value.Length > 0 ? double.Parse(value) : double.NaN;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return [];
+            }
+
+            return value.Split(',', StringSplitOptions.TrimEntries)
+                        .Select(x => double.TryParse(x, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) ? number : 0)
+                        .ToList();
         }
     }
 }

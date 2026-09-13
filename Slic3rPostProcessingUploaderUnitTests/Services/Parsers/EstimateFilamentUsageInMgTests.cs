@@ -103,5 +103,46 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers
 
             Assert.AreEqual(5000d, result);
         }
+
+        [TestMethod]
+        public void ShouldSumCommaSeparatedWeightListInsteadOfThrowing()
+        {
+            // PrusaSlicer MMU/XL exports write one value per extruder slot.
+            var gcode = """
+                ; filament used [mm] = 1520.31, 0.00, 843.12, 0.00, 0.00
+                ; filament used [g] = 4.53, 0.00, 2.51, 0.00, 0.00
+                """;
+
+            var result = Estimate(gcode);
+
+            Assert.AreEqual(7040d, result);
+        }
+
+        [TestMethod]
+        public void ShouldUseFirstValueFromCommaSeparatedLengthListWhenWeightAbsent()
+        {
+            var gcode = """
+                ; filament_diameter = 1.75, 1.75
+                ; filament_density = 1.24, 1.24
+                ; filament_type = PLA;PLA
+                ; filament used [mm] = 1000, 500
+                """;
+
+            var result = Estimate(gcode);
+
+            Assert.AreEqual(2982, result);
+        }
+
+        [TestMethod]
+        public void ShouldReturnZeroInsteadOfThrowingWhenWeightIsNotNumeric()
+        {
+            var gcode = """
+                ; filament used [g] = n/a
+                """;
+
+            var result = Estimate(gcode);
+
+            Assert.AreEqual(0d, result);
+        }
     }
 }

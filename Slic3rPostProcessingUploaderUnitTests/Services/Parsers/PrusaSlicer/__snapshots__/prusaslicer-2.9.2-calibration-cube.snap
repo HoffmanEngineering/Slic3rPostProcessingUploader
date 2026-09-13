@@ -7,9 +7,26 @@
     "print_name": null,
     "time_stamp": null,
     "estimated_print_time_seconds": 642,
-    "material_used_mg": 3973,
+    "material_used_mg": null,
     "Snapshot": "dCNOmK/nSY+12vHzasLXiswzlGT5UHA7jAGYkvmCuQs=",
     "file_name": null,
-    "filamentUsage": null
+    "filamentUsage": [
+      {
+        "Id": null,
+        "Filament": {
+          "Id": "00000000-0000-0000-0000-000000000000",
+          "DisplayName": "Other"
+        },
+        "AmountMg": null,
+        "LengthInM": null,
+        "VolumeMl": null,
+        "EstimatedAmountMg": null,
+        "EstimatedLengthInM": 1.332,
+        "EstimatedVolumeMl": null,
+        "Source": "Length",
+        "EstimatedSource": "Length",
+        "Notes": "Slot 1 · Teal (#29B2B2) · PLA"
+      }
+    ]
   }
 }

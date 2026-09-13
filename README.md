@@ -105,7 +105,7 @@ If your slicer embeds thumbnails in the G-code, the highest resolution one up to
 
 ### Multi-Color Prints
 
-For multi-filament prints (OrcaSlicer, Bambu Studio, Anycubic Slicer Next), each filament usage entry is sent with a note describing the slicer slot it came from, its basic color, and its material, for example:
+For multi-filament prints (OrcaSlicer, Bambu Studio, Anycubic Slicer Next, PrusaSlicer MMU/XL), each filament usage entry is sent with a note describing the slicer slot it came from, its basic color, and its material, for example:
 
 - `Slot 1 · Red (#E72F1D) · PLA`
 - `Slot 2 · Black (#080A0D) · PLA`

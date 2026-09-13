@@ -64,4 +64,33 @@ public sealed class PrusaParserTests
 
         Assert.AreEqual(numPlaceholders, numMatches, $"{numPlaceholders - numMatches} placeholder(s) in the {templateName} template are not present in {slicerVersion} gcode");
     }
+
+    [TestMethod]
+    public void ShouldReportPerSlotFilamentUsageForMultiExtruderExport()
+    {
+        var gcode = TestData.Load(Path.Combine("PrusaSlicer", "prusaslicer-3.0.0-alpha11-xl5t-two-slots.gcode"));
+
+        var result = new PrusaParser("").ParseGcode(gcode);
+
+        Assert.IsNull(result.settings.material_used_mg);
+        var notes = result.settings.filamentUsage!.Select(f => f.Notes).ToList();
+        CollectionAssert.AreEqual(new[]
+        {
+            "Slot 1 · Red (#E72F1D) · PLA",
+            "Slot 3 · Blue (#1F77B4) · PLA",
+        }, notes);
+        Assert.AreEqual(1.363, result.settings.filamentUsage[0].EstimatedLengthInM);
+        Assert.AreEqual(1.613, result.settings.filamentUsage[1].EstimatedLengthInM);
+    }
+
+    [TestMethod]
+    public void ShouldReportSingleSlotWhenOnlyOneExtruderIsUsedOnMultiExtruderPrinter()
+    {
+        var gcode = TestData.Load(Path.Combine("PrusaSlicer", "prusaslicer-3.0.0-alpha11-xl5t-single-slot.gcode"));
+
+        var result = new PrusaParser("").ParseGcode(gcode);
+
+        Assert.AreEqual(1, result.settings.filamentUsage!.Count);
+        Assert.AreEqual("Slot 1 · Red (#E72F1D) · PLA", result.settings.filamentUsage[0].Notes);
+    }
 }
