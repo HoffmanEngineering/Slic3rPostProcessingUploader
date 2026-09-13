@@ -25,7 +25,7 @@
         "EstimatedVolumeMl": null,
         "Source": "Length",
         "EstimatedSource": "Length",
-        "Notes": ""
+        "Notes": "Slot 1 · Blue (#69A4FF) · PLA"
       },
       {
         "Id": null,
@@ -41,7 +41,7 @@
         "EstimatedVolumeMl": null,
         "Source": "Length",
         "EstimatedSource": "Length",
-        "Notes": ""
+        "Notes": "Slot 2 · Yellow (#FFFF00) · PLA"
       }
     ]
   }
