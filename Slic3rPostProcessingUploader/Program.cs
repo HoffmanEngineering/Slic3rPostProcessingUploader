@@ -21,6 +21,18 @@ try
     string newPrintUrl = arguments.UseLocalDev ? "https://localhost:4200/prints/new/cura" : "https://www.3dprintlog.com/prints/new/cura";
     string apiUrl = arguments.UseLocalDev ? "https://localhost:5001/api/Cura/settings" : "https://api.3dprintlog.com/api/Cura/settings";
 
+    if (arguments.DisplayHelp)
+    {
+        DisplayHelp(arguments);
+        return 0;
+    }
+
+    if (arguments.DisplayVersion)
+    {
+        Console.WriteLine($"Slic3rPostProcessingUploader v{new VersionService().GetVersion()}");
+        return 0;
+    }
+
     telemetry = new TelemetryService(arguments.DisableTelemetry);
 
     // Track platform info
@@ -39,18 +51,6 @@ try
         { "LocalDev", arguments.UseLocalDev },
         { "TelemetryDisabled", arguments.DisableTelemetry }
     });
-
-    if (arguments.DisplayHelp)
-    {
-        DisplayHelp(arguments);
-        return 0;
-    }
-
-    if (arguments.DisplayVersion)
-    {
-        Console.WriteLine($"Slic3rPostProcessingUploader v{new VersionService().GetVersion()}");
-        return 0;
-    }
 
     debugFile = OpenDebugFile(arguments.DebugPath);
     output = ConsoleOutput.ForConsole(debugFile, verbose: debugFile != null);
@@ -134,8 +134,7 @@ void DisplayHelp(ArgumentParser arguments)
 {
     arguments.DisplayHelpDocs();
 
-    Console.WriteLine("Press any key to exit");
-    Console.ReadKey();
+    ConsolePause.WaitForKeyOrTimeout(output, TimeSpan.FromSeconds(10));
 }
 
 static string DescribeTemplate(ArgumentParser arguments) =>
