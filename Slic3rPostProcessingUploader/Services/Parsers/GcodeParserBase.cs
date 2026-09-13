@@ -7,8 +7,15 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         [GeneratedRegex("{{(.*?)}}")]
         private static partial Regex TemplatePlaceholderRegex();
 
-        [GeneratedRegex("thumbnail begin[\\sa-zA-Z\\d]*([\\S\\s]*?); thumbnail end", RegexOptions.IgnoreCase | RegexOptions.Multiline)]
+        // Matches PNG ("thumbnail begin") and JPG ("thumbnail_JPG begin") blocks. QOI is deliberately excluded since browsers cannot render it.
+        [GeneratedRegex("thumbnail(?:_JPG)? begin (\\d+)x(\\d+)[\\sa-zA-Z\\d]*([\\S\\s]*?); thumbnail end", RegexOptions.IgnoreCase | RegexOptions.Multiline)]
         private static partial Regex SnapshotRegex();
+
+        /// <summary>
+        /// Upper bound (720p) on the thumbnail resolution we will pick. Larger thumbnails are only used if nothing smaller exists.
+        /// </summary>
+        private const int MaxSnapshotWidth = 1280;
+        private const int MaxSnapshotHeight = 720;
 
         [GeneratedRegex(@"total estimated time: (.+)$", RegexOptions.IgnoreCase | RegexOptions.Multiline)]
         private static partial Regex PrintTimeRegex();
@@ -158,14 +165,35 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
             return "Unknown";
         }
 
+        /// <summary>
+        /// Slicers often embed several thumbnails (e.g. 48x48 and 300x300). Pick the highest resolution one up to 720p,
+        /// falling back to the smallest available if every thumbnail exceeds 720p.
+        /// </summary>
         protected string? GetSnapshot(string gcode)
         {
-            var snapshotMatch = SnapshotRegex().Match(gcode);
-            if (snapshotMatch.Success)
+            var candidates = SnapshotRegex().Matches(gcode)
+                .Select(m => new
+                {
+                    Width = int.Parse(m.Groups[1].Value),
+                    Height = int.Parse(m.Groups[2].Value),
+                    Payload = m.Groups[3].Value,
+                })
+                .ToList();
+
+            if (candidates.Count == 0)
             {
-                return snapshotMatch.Groups[1].Value.Replace("\r\n; ", "").Replace("\n; ", "").Replace(";", "").Trim();
+                return null;
             }
-            return null;
+
+            var withinLimit = candidates
+                .Where(c => c.Width <= MaxSnapshotWidth && c.Height <= MaxSnapshotHeight)
+                .ToList();
+
+            var chosen = withinLimit.Count > 0
+                ? withinLimit.MaxBy(c => c.Width * c.Height)!
+                : candidates.MinBy(c => c.Width * c.Height)!;
+
+            return chosen.Payload.Replace("\r\n; ", "").Replace("\n; ", "").Replace(";", "").Trim();
         }
 
         protected int ParseEstimatedPrintTime(string gcode)
