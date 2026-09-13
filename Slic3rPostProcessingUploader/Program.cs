@@ -60,7 +60,11 @@ try
         throw new ArgumentException("No input file specified. Please provide a G-code file path as the last argument.");
     }
 
-    string fileContents = File.ReadAllText(arguments.InputFile);
+    // Only the head and tail of the file carry slicer metadata, so that is all we read. Debug mode reads the whole file
+    // so the full contents can be logged for troubleshooting.
+    string fileContents = string.IsNullOrEmpty(arguments.DebugPath)
+        ? GcodeWindow.ReadFromFile(arguments.InputFile)
+        : File.ReadAllText(arguments.InputFile);
     LogFileContents(arguments.DebugPath, fileContents);
 
     IGcodeParser parser = ParserFactory.GetParser(arguments, telemetry, fileContents);

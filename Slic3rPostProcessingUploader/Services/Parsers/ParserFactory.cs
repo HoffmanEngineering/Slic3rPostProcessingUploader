@@ -12,6 +12,8 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         {
             SendTemplateMetrics(arguments, telemetry);
 
+            gcode = GcodeWindow.Trim(gcode);
+
             // search through the gcode to find the slicer used
 
             if (OrcaParser.IsOrcaSlicer(gcode))
