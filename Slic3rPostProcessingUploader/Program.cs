@@ -70,6 +70,11 @@ try
 
     LogEnvironmentVariables(arguments.DebugPath);
 
+    // Kick off the GitHub release lookup now so it runs alongside parsing and the upload; the result is only read
+    // (and only shown) once the print has been handled, so a slow or unreachable GitHub never delays the real work.
+    using HttpClient updateClient = new() { Timeout = UpdateCheckService.CheckTimeout };
+    Task<UpdateCheckService.Result?> updateCheck = new UpdateCheckService(updateClient, output).CheckAsync(new VersionService().GetVersion());
+
     if (string.IsNullOrEmpty(arguments.InputFile))
     {
         throw new UserFacingException(
@@ -121,6 +126,7 @@ try
     if (arguments.DryRun)
     {
         DryRunReport.Write(output, dto, arguments.DebugPath);
+        await ReportUpdateIfAvailable(updateCheck);
         return 0;
     }
 
@@ -132,6 +138,8 @@ try
     string printUrl = PrintMetadata.BuildPrintUrl(newPrintUrl, dto, settingId);
     output.Info($"Opening {printUrl}");
     OpenBrowser(printUrl);
+
+    await ReportUpdateIfAvailable(updateCheck);
 }
 catch (Exception e)
 {
@@ -158,6 +166,16 @@ void DisplayHelp(ArgumentParser arguments)
     arguments.DisplayHelpDocs();
 
     ConsolePause.WaitForKeyOrTimeout(output, TimeSpan.FromSeconds(10));
+}
+
+// The check itself never throws (see UpdateCheckService); this only decides whether there is anything to say.
+async Task ReportUpdateIfAvailable(Task<UpdateCheckService.Result?> updateCheck)
+{
+    UpdateCheckService.Result? update = await updateCheck;
+    if (update != null)
+    {
+        UpdateCheckService.Report(output, update);
+    }
 }
 
 static string DescribeTemplate(ArgumentParser arguments) =>

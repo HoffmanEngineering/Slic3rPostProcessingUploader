@@ -77,6 +77,10 @@ Example: `Slic3rPostProcessingUploader --dry-run --template C:\templates\my.txt 
 
 `--opt-out-telemetry`: Disable telemetry tracking. To help improve the plugin, we track slicer and plugin versions, as well as log errors that are thrown. No personal data is collected.
 
+### Update notifications
+
+Each run also asks GitHub for the [latest release](https://github.com/HoffmanEngineering/Slic3rPostProcessingUploader/releases/latest). When it is newer than the version you are running, a note is printed at the end of the output with a link to the release so you can upgrade to get the latest features. The check runs alongside the upload, is silent when GitHub cannot be reached, and is skipped for development builds (`0.0.0-dev`).
+
 ### Note Template Options:
 
 `--default`: Use the default note template, which contains a curated list of general settings. Preferred by most users. The Default template is used if no other note template option is given.
