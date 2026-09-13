@@ -291,14 +291,11 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
 
             var filamentType = ParseSettingAsString(gcode, "; filament_type");
             // Try and grab the first diameter
-            var filamentDiameter = double.Parse(ParseSettingAsString(gcode, "; filament_diameter").Split(',')[0]);
-            if (double.IsNaN(filamentDiameter))
+            if (!double.TryParse(ParseSettingAsString(gcode, "; filament_diameter").Split(',')[0], out var filamentDiameter))
             {
                 return 0;
             }
-            var filamentUsageLengthInMM = double.Parse(ParseSettingAsString(gcode, "; " + FilamentLengthKey));
-
-            if (double.IsNaN(filamentUsageLengthInMM))
+            if (!double.TryParse(ParseSettingAsString(gcode, "; " + FilamentLengthKey), out var filamentUsageLengthInMM))
             {
                 return 0;
             }
