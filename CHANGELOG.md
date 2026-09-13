@@ -1,4 +1,5 @@
 # Unreleased
+- `--help` no longer blocks or throws when stdin/stdout is redirected, and `--help`/`--version` no longer trigger telemetry initialization
 - Unknown CLI flags (e.g. a misspelled `--fulll`) now cause an error instead of being silently ignored; argument errors (bad `--template`/`--debug` usage) are now reported as plain, actionable messages instead of a generic crash report
 - Fixed estimated print times over 24 hours being logged too short: the `d` (days) token in slicer time strings like `1d 6h 12m 5s` was being silently dropped
 - Cleaner console output: a short ✓ progress summary on success, plain-English errors with a suggested fix on failure. Raw HTTP responses and stack traces now only appear on screen with `--debug` (they are still written to `slic3r-debug.txt`)
