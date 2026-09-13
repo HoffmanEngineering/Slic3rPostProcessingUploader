@@ -72,6 +72,10 @@ In your Slicer's Post Processing text box, input:
 
 Once you slice your object and export the `.gcode` file, this plugin will run and open your default web browser to https://www.3dprintlog.com with all of the print details and settings filled out.
 
+### Thumbnails
+
+If your slicer embeds thumbnails in the G-code, the highest resolution one up to 720p (1280x720) is used as the print image. PNG and JPG thumbnails are supported; QOI thumbnails are ignored. To get a sharper image, add a larger size (e.g. `300x300`) to your printer's thumbnail settings in the slicer.
+
 ## Note Templates
 
 If the provided `default` or `full` templates are not to your liking, you can create custom note templates by passing in the path to a text file containing the template. These can look for specific settings in the gcode file, and pull out the data.
