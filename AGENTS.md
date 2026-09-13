@@ -27,7 +27,9 @@ G-code file → ArgumentParser → ParserFactory → Slicer-specific Parser → 
 
 ### Key Components
 
-- **Program.cs**: Entry point with DI setup and Application Insights telemetry
+- **Program.cs**: Entry point; wiring only (argument parsing, telemetry setup, debug logging, browser launch)
+- **Services/UploadService.cs**: Posts the DTO to the API over an injected `HttpClient`; every failure becomes a `UserFacingException`
+- **Services/PrintMetadata.cs**: Pure helpers for `file_name`/`print_name` (honours `SLIC3R_PP_OUTPUT_NAME`) and the new-print URL
 - **ArgumentParser.cs**: CLI argument handling (`--default`, `--full`, `--template`, `--debug`, etc.)
 - **ParserFactory.cs**: Detects slicer type from G-code markers, falls back to template match scoring
 - **Services/Parsers/{SlicerName}/**: Each slicer has its own directory with:
