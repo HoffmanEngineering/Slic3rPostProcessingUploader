@@ -31,6 +31,11 @@ namespace Slic3rPostProcessingUploader.Services
             var lastArg = args.LastOrDefault();
             this.InputFile = lastArg != null && !lastArg.StartsWith("--") && lastArg != "-h" ? lastArg : null;
 
+            // The last argument is the G-code path (when it's not a flag) and is exempt from flag checking.
+            // It's still flag-checked when it looks like a flag, so a lone unknown flag is still reported.
+            int lastIndex = args.Length - 1;
+            bool lastArgIsInputFile = this.InputFile != null && lastIndex >= 0 && args[lastIndex] == this.InputFile;
+
             // Check for if the user wants a default, full, or custom note template
             for (int i = 0; i < args.Length; i++)
             {
@@ -51,65 +56,86 @@ namespace Slic3rPostProcessingUploader.Services
 
                     if (i + 1 >= args.Length)
                     {
-                        throw new ArgumentException("--template requires a path argument");
+                        throw new UserFacingException(
+                            "--template requires a path argument",
+                            "Pass the path to your custom note template, e.g. --template C:\\templates\\custom.txt");
                     }
 
                     this.NoteTemplatePath = args[i + 1];
+                    i++; // The path value belongs to --template; skip it so it isn't checked as a flag.
 
                     if (string.IsNullOrEmpty(this.NoteTemplatePath))
                     {
-                        throw new ArgumentNullException("Note template path cannot be null or empty");
+                        throw new UserFacingException(
+                            "Note template path cannot be null or empty",
+                            "Pass the path to your custom note template, e.g. --template C:\\templates\\custom.txt");
                     }
 
                     if (this.NoteTemplatePath == this.InputFile)
                     {
-                        throw new ArgumentException("Note template path cannot be null or empty");
+                        throw new UserFacingException(
+                            "Note template path cannot be the same as the G-code file",
+                            "Pass a different path for --template than the G-code file being processed.");
                     }
                 }
-
-                if (args[i] == "--local-dev")
+                else if (args[i] == "--local-dev")
                 {
                     this.UseLocalDev = true;
                 }
-
-                if (args[i] == "--debug")
+                else if (args[i] == "--debug")
                 {
                     if (i + 1 >= args.Length)
                     {
-                        throw new ArgumentException("--debug requires a path argument");
+                        throw new UserFacingException(
+                            "--debug requires a path argument",
+                            "Pass the path to save debug output to, e.g. --debug C:\\debug\\");
                     }
 
                     this.DebugPath = args[i + 1];
-
-                    if (this.DebugPath == this.InputFile)
-                    {
-                        throw new ArgumentException("Debug path cannot be the same as input file");
-                    }
+                    i++; // The path value belongs to --debug; skip it so it isn't checked as a flag.
 
                     if (string.IsNullOrEmpty(this.DebugPath))
                     {
-                        throw new ArgumentNullException("Debug path cannot be null or empty");
+                        throw new UserFacingException(
+                            "Debug path cannot be null or empty",
+                            "Pass the path to save debug output to, e.g. --debug C:\\debug\\");
                     }
 
-                    if(this.DebugPath.StartsWith("--"))
+                    if (this.DebugPath == this.InputFile)
                     {
-                        throw new ArgumentException("Debug path cannot start with --" + this.DebugPath);
+                        throw new UserFacingException(
+                            "Debug path cannot be the same as input file",
+                            "Pass a different path for --debug than the G-code file being processed.");
+                    }
+
+                    if (this.DebugPath.StartsWith("--"))
+                    {
+                        throw new UserFacingException(
+                            $"Debug path cannot start with --: {this.DebugPath}",
+                            "Pass the path to save debug output to, e.g. --debug C:\\debug\\");
                     }
                 }
-
-                if (args[i] == "--opt-out-telemetry")
+                else if (args[i] == "--opt-out-telemetry")
                 {
                     this.DisableTelemetry = true;
                 }
-
-                if (args[i] == "--help" ||  args[i] == "-h")
+                else if (args[i] == "--help" || args[i] == "-h")
                 {
                     this.DisplayHelp = true;
                 }
-
-                if (args[i] == "--version" || args[i] == "-v")
+                else if (args[i] == "--version" || args[i] == "-v")
                 {
                     this.DisplayVersion = true;
+                }
+                else if (i == lastIndex && lastArgIsInputFile)
+                {
+                    // The last argument is the G-code path, not a flag; nothing to validate.
+                }
+                else if (args[i].StartsWith("--") || args[i].StartsWith("-"))
+                {
+                    throw new UserFacingException(
+                        $"Unknown option: {args[i]}",
+                        "Run with --help to see the available options.");
                 }
             }
         }
