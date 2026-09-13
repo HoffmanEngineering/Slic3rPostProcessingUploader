@@ -54,7 +54,6 @@
                     One Wall Threshold: {{only_one_wall_first_layer}}
                     Avoid Crossing Walls: {{reduce_crossing_wall}}
                     Avoid Crossing Walls - Max Detour Length: {{max_travel_detour_distance}}
-                    Small Area Flow Compensation: {{small_area_infill_flow_compensation}}
                   Bridging:
                     Bridge Flow Ratio: {{bridge_flow}}
                     Internal Bridge Flow Ratio: 
@@ -66,7 +65,6 @@
                   Overhangs:
                     Detect Overhang Walls: {{detect_overhang_wall}}
                     Make Overhangs Printable: 
-                    Extra Perimeters on Overhangs: {{extra_perimeters_on_overhangs}}
                     Reverse on Even: 
 
                 Strength:
@@ -88,7 +86,6 @@
                     Sparse Infill Anchor Length: {{sparse_infill_anchor}}
                     Max Length of Infill Anchor: {{sparse_infill_anchor_max}}
                     Internal Solid Infill Pattern: {{internal_solid_infill_pattern}}
-                    Apply Gap Fill: {{apply_gap_fill}}
                     Filter Out Tiny Gaps: {{filter_out_gap_fill}}
                     Infill/Wall Overlap: {{infill_wall_overlap}}
                   Advanced:
@@ -106,7 +103,6 @@
                     First Layer: {{initial_layer_speed}}
                     First Layer Infill: {{initial_layer_infill_speed}}
                     Initial Layer Travel Speed: 
-                    Number of Slow Layers: {{slow_down_layers}}
                   Other Layers Speed:
                     Outer Wall: {{outer_wall_speed}}
                     Inner Wall: {{inner_wall_speed}}
@@ -129,12 +125,9 @@
                     Normal Printing: {{default_acceleration}}
                     Outer Wall: {{outer_wall_acceleration}}
                     Inner Wall: {{inner_wall_acceleration}}
-                    Bridge: {{bridge_acceleration}}
                     Sparse Infill: {{sparse_infill_acceleration}}
-                    Internal Solid Infill: {{internal_solid_infill_acceleration}}
                     First Layer: {{initial_layer_acceleration}}
                     Top Surface: {{top_surface_acceleration}}
-                    Travel: {{travel_acceleration}}
                     Enable accel_to_decel: {{accel_to_decel_enable}}
                     accel_to_decel: {{accel_to_decel_factor}}
                   Jerk:
@@ -172,7 +165,7 @@
                     Bottom Interface Spacing: {{support_bottom_interface_spacing}}
                     Normal Support Expansion: {{support_expansion}}
                     Support/Object XY Distance: {{support_object_xy_distance}}
-                    Don't Support Bridges: {{dont_support_bridges}}
+                    Don't Support Bridges: {{bridge_no_support}}
 
                 Multimaterial:
                   Prime Tower:
@@ -193,12 +186,9 @@
 
                 Other:
                   Skirt:
-                    Skirt Type: 
                     Skirt Loops: {{skirt_loops}}
-                    Skirt Min Extrusion Length: {{min_skirt_length}}
                     Skirt Distance: {{skirt_distance}}
                     Skirt Height: {{skirt_height}}
-                    Skirt Speed: {{skirt_speed}}
                     Draft Shield: {{draft_shield}}
                   Brim:
                     Brim Type: {{brim_type}}
