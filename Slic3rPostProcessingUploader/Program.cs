@@ -14,6 +14,10 @@ ConsoleOutput output = ConsoleOutput.ForConsole(debugFile: null, verbose: false)
 StreamWriter? debugFile = null;
 int exitCode = 0;
 
+// Total end-to-end wall time, reported in the UploadResult event so real user-experienced latency
+// (including the telemetry/HTTP timeouts below) is visible, not just the time spent parsing.
+var totalStopwatch = Stopwatch.StartNew();
+
 try
 {
     ArgumentParser arguments = new(args);
@@ -199,7 +203,12 @@ void LogDto(string? debugPath, CuraSettingDto dto)
 // Posts the settings and returns the new setting id. Every failure surfaces as a UserFacingException.
 async Task<string> UploadToApi(TelemetryService telemetry, ConsoleOutput output, string apiUrl, CuraSettingDto dto, string? debugPath)
 {
-    using HttpClient client = new();
+    // The payload is small JSON (the thumbnail is the only sizeable part), so a hung connection has no
+    // legitimate reason to take anywhere near the 100 s default. Bound it so "Could not reach
+    // 3dprintlog.com" shows up promptly instead of after nearly two minutes.
+    const int UploadTimeoutSeconds = 20;
+
+    using HttpClient client = new() { Timeout = TimeSpan.FromSeconds(UploadTimeoutSeconds) };
     using StringContent content = new(dto.ToJSON(), Encoding.UTF8, "application/json");
 
     HttpResponseMessage response;
@@ -252,7 +261,8 @@ async Task<string> UploadToApi(TelemetryService telemetry, ConsoleOutput output,
 
     telemetry.TrackEvent("UploadResult", new Dictionary<string, object> {
         { "Success", true },
-        { "StatusCode", (int)response.StatusCode }
+        { "StatusCode", (int)response.StatusCode },
+        { "TotalDurationMs", totalStopwatch.ElapsedMilliseconds }
     });
 
     return apiResponse.NewSettingId;
