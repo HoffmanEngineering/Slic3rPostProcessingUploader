@@ -1,5 +1,4 @@
 using Slic3rPostProcessingUploader.Services.Installer;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -18,33 +17,14 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
             _configRootOverride = configRootOverride;
         }
 
-        protected string GetConfigRoot()
-        {
-            if (_configRootOverride != null)
-                return _configRootOverride;
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                return Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    SlicerDirectoryName);
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                return Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.Personal),
-                    "Library", "Application Support", SlicerDirectoryName);
-
-            // Linux: respect XDG_CONFIG_HOME
-            string? xdg = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
-            string baseDir = !string.IsNullOrEmpty(xdg)
-                ? xdg
-                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".config");
-            return Path.Combine(baseDir, SlicerDirectoryName);
-        }
+        /// <summary>The slicer's config directory, or null when the home directory cannot be determined.</summary>
+        protected string? GetConfigRoot() =>
+            _configRootOverride ?? SlicerConfigRoot.ForCurrentMachine(SlicerDirectoryName);
 
         // Exposed for testing only
-        internal string GetConfigRootForTesting() => GetConfigRoot();
+        internal string? GetConfigRootForTesting() => GetConfigRoot();
 
-        public bool IsDetected() => Directory.Exists(GetConfigRoot());
+        public bool IsDetected() => GetConfigRoot() is { } root && Directory.Exists(root);
 
         public SlicerInstallStatus GetInstallStatus(string executablePath)
         {
@@ -361,7 +341,8 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
         protected List<SystemProfile> FindSelectableSystemProfiles()
         {
             var result = new List<SystemProfile>();
-            var systemDir = Path.Combine(GetConfigRoot(), "system");
+            if (GetConfigRoot() is not { } root) return result;
+            var systemDir = Path.Combine(root, "system");
             if (!Directory.Exists(systemDir)) return result;
 
             foreach (var vendorDir in Directory.EnumerateDirectories(systemDir).Order(StringComparer.Ordinal))
@@ -435,7 +416,8 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
 
         protected List<string> FindUserAccountDirs()
         {
-            var userDir = Path.Combine(GetConfigRoot(), "user");
+            if (GetConfigRoot() is not { } root) return new List<string>();
+            var userDir = Path.Combine(root, "user");
             if (!Directory.Exists(userDir)) return new List<string>();
             return Directory.GetDirectories(userDir).ToList();
         }

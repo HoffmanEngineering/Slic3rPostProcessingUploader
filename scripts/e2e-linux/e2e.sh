@@ -1,0 +1,161 @@
+#!/bin/bash
+# End-to-end check of the setup wizard against a real OrcaSlicer on Linux, driven headlessly.
+#
+#   1. Extract the AppImage and complete OrcaSlicer's first-run wizard (Klipper + Afinia printers).
+#   2. Run `Slic3rPostProcessingUploader install` (the real binary) against the config it wrote.
+#   3. Swap the binary for a stub that logs its arguments, relaunch OrcaSlicer, add a cube, slice,
+#      export G-code, and assert that OrcaSlicer invoked the stub with the installed flags.
+#
+# Inputs (copied in): /uploader   linux-x64 build of Slic3rPostProcessingUploader
+#                    /appimage   OrcaSlicer_Linux_AppImage_*.AppImage (or set APPIMAGE_URL)
+# Outputs:           /out        screenshots, logs, the exported G-code and the captured config tree
+#
+# The click coordinates assume a 1600x1000 screen and the OrcaSlicer 2.4.x wizard layout; when the
+# layout changes, take a screenshot (see shot()) and adjust.
+set -euo pipefail
+
+OUT=/out; mkdir -p "$OUT"
+export HOME=/home/tester; mkdir -p "$HOME/.config"
+CONFIG="$HOME/.config/OrcaSlicer"
+STEP=0
+
+log()  { echo "[e2e] $*"; }
+shot() { STEP=$((STEP + 1)); import -display :99 -window root "$OUT/$(printf '%02d' $STEP)-$1.png"; }
+fail() { log "FAIL: $*"; shot "fail"; exit 1; }
+click() { xdotool mousemove "$1" "$2" click "${3:-1}"; sleep "${4:-2}"; }
+wclick() { # wclick <window title regex> <x> <y> [sleep] — coordinates relative to that window's client area
+    local w; w=$(xdotool search --name "$1" | head -1); [ -n "$w" ] || fail "no window '$1' to click in"
+    xdotool mousemove --window "$w" "$2" "$3" click 1; sleep "${4:-2}"
+}
+wait_window() { # wait_window <title regex> [timeout s]
+    local deadline=$(( $(date +%s) + ${2:-60} ))
+    until xdotool search --name "$1" >/dev/null 2>&1; do
+        [ "$(date +%s)" -lt "$deadline" ] || fail "window '$1' did not appear"
+        sleep 1
+    done
+}
+wait_gone() { # wait_gone <title regex> [timeout s]
+    local deadline=$(( $(date +%s) + ${2:-60} ))
+    while xdotool search --name "$1" >/dev/null 2>&1; do
+        [ "$(date +%s)" -lt "$deadline" ] || fail "window '$1' did not close"
+        sleep 1
+    done
+}
+launch_orca() {
+    ( cd /work/squashfs-root && ./AppRun >"$OUT/orca-$1.log" 2>&1 ) &
+    ORCA_PID=$!
+    # First-run SSL certificate question; "Yes" is the default.
+    wait_window "OrcaSlicer" 90
+    sleep 8
+    if xdotool search --name "^OrcaSlicer$" >/dev/null && ! xdotool search --name "Untitled" >/dev/null; then
+        shot "ssl-question"; wclick "^OrcaSlicer$" 635 111
+    fi
+    wait_window "Untitled - OrcaSlicer" 120
+    sleep 6
+    # Pin the main window where the absolute coordinates below expect it.
+    local m; m=$(xdotool search --name "Untitled - OrcaSlicer" | head -1)
+    xdotool windowmove --sync "$m" 200 100; xdotool windowsize --sync "$m" 1200 800; sleep 2
+}
+stop_orca() {
+    pkill -x orca-slicer 2>/dev/null || true
+    pkill -x AppRun 2>/dev/null || true
+    sleep 3
+}
+
+# ---- 0. Inputs -------------------------------------------------------------------------------------
+[ -f /uploader ] || fail "/uploader is missing (mount the linux-x64 build)"
+# Work on a copy: the mount is read-only and step 3 replaces the file in place.
+UPLOADER=/opt/uploader; cp /uploader "$UPLOADER"; chmod +x "$UPLOADER"
+mkdir -p /work && cd /work
+if [ -f /appimage ]; then cp /appimage ./slicer.AppImage
+elif [ -n "${APPIMAGE_URL:-}" ]; then curl -sL -o slicer.AppImage "$APPIMAGE_URL"
+else fail "mount an AppImage at /appimage or set APPIMAGE_URL"; fi
+chmod +x slicer.AppImage
+./slicer.AppImage --appimage-extract >/dev/null 2>&1 || fail "AppImage extraction failed"
+log "extracted $(ls squashfs-root/bin 2>/dev/null | head -1)"
+
+Xvfb :99 -screen 0 1600x1000x24 >"$OUT/xvfb.log" 2>&1 &
+sleep 2
+openbox >"$OUT/openbox.log" 2>&1 &
+sleep 1
+
+# ---- 1. First-run wizard ----------------------------------------------------------------------------
+launch_orca "first-run"
+W="Setup Wizard"
+wait_window "$W" 30
+shot "welcome"
+wclick "$W" 417 422                         # Get Started
+wclick "$W" 414 414 1; wclick "$W" 754 618  # Region: North America → Next
+shot "printer-selection"
+wclick "$W" 114 170 1                       # Custom Printer → Klipper
+wclick "$W" 782 483 1                       # Afinia (whole vendor)
+wclick "$W" 754 618 8                       # Next (filaments)
+wclick "$W" 754 618 6                       # Next (stealth mode)
+wclick "$W" 129 309 1; wclick "$W" 754 601  # Enable stealth mode → Next
+shot "plugins"
+wclick "$W" 754 601 15                      # Finish
+[ -d "$CONFIG/system/Custom" ] && [ -d "$CONFIG/system/Afinia" ] || fail "wizard did not write system profiles"
+[ -d "$CONFIG/user/default/process" ] || fail "wizard did not create user/default/process"
+shot "wizard-done"
+stop_orca
+log "wizard complete: $(ls "$CONFIG/system" | tr '\n' ' ')"
+cp -r "$CONFIG" "$OUT/config-after-wizard"
+
+# ---- 2. Install with the real uploader ----------------------------------------------------------------
+# Answers: install=Y, note template 2 (full), opt out of telemetry=y, no extra flags.
+printf "y\n2\ny\n\n" | "$UPLOADER" install | tee "$OUT/install.log"
+CREATED=$(ls "$CONFIG/user/default/process" | grep -c -- ' - 3DPrintLog.json' || true)
+[ "$CREATED" -gt 0 ] || fail "install created no overrides"
+grep -q "\"$UPLOADER --full --opt-out-telemetry\"" "$CONFIG/user/default/process/0.20mm Standard @MyKlipper - 3DPrintLog.json" \
+    || fail "override does not carry the expected post_process entry"
+log "install created $CREATED overrides"
+printf "y\n2\ny\n\n" | "$UPLOADER" install | tee "$OUT/install-again.log" | grep -q "$CREATED skipped" \
+    || fail "second install was not a no-op"
+cp -r "$CONFIG" "$OUT/config-after-install"
+
+# ---- 3. Prove OrcaSlicer runs it --------------------------------------------------------------------
+# Same path, different program: a stub that records how the slicer called it (nothing is uploaded).
+mv "$UPLOADER" "$UPLOADER.real"
+cat >"$UPLOADER" <<'STUB'
+#!/bin/bash
+{ echo "args: $*"; echo "SLIC3R_PP_OUTPUT_NAME=$SLIC3R_PP_OUTPUT_NAME"; head -2 "${@: -1}"; } >> /tmp/pp.log
+STUB
+chmod +x "$UPLOADER"
+
+launch_orca "with-overrides"
+click 330 155 1 4                   # Prepare tab
+click 246 458 1 3                   # process preset dropdown
+shot "preset-dropdown"
+xdotool key Escape; sleep 1
+click 1030 540 3 2                  # right-click plate
+click 1108 731 1 1                  # Add Primitive ▸
+xdotool key Right; sleep 1; xdotool key Return; sleep 4   # Cube
+click 246 458 1 3                   # dropdown again, pick "0.20mm Standard @MyKlipper - 3DPrintLog"
+click 410 633 1 4
+shot "cube-ready"
+click 1102 155 1 25                 # Slice plate
+shot "sliced"
+click 1275 155 1 6                  # Export G-code file
+wait_window "Save G-code file as" 30
+xdotool key ctrl+a; xdotool type "/tmp/cube-test.gcode"; xdotool key Return
+wait_gone "Save G-code file as" 60
+sleep 10
+shot "exported"
+stop_orca
+
+[ -f /tmp/cube-test.gcode ] || fail "no G-code exported"
+cp /tmp/cube-test.gcode "$OUT/"
+[ -f /tmp/pp.log ] || fail "OrcaSlicer never invoked the post-process script"
+cp /tmp/pp.log "$OUT/"
+grep -q '^args: --full --opt-out-telemetry ' /tmp/pp.log || fail "script was called with unexpected arguments: $(head -1 /tmp/pp.log)"
+grep -q '^SLIC3R_PP_OUTPUT_NAME=/tmp/cube-test.gcode$' /tmp/pp.log || fail "SLIC3R_PP_OUTPUT_NAME not passed"
+grep -q 'generated by OrcaSlicer' /tmp/pp.log || fail "script did not receive the G-code path"
+
+# ---- 4. Uninstall round-trips ----------------------------------------------------------------------
+mv "$UPLOADER.real" "$UPLOADER"
+printf "y\n" | "$UPLOADER" uninstall | tee "$OUT/uninstall.log"
+LEFT=$(ls "$CONFIG/user/default/process" | grep -c -- ' - 3DPrintLog.json' || true)
+[ "$LEFT" -eq 0 ] || fail "uninstall left $LEFT overrides behind"
+
+log "PASS: OrcaSlicer ran the installed uploader:"
+cat /tmp/pp.log

@@ -43,7 +43,9 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
         {
             var installer = new TestOrcaInstaller();
             var root = installer.GetConfigRootForTesting();
+            Assert.IsNotNull(root);
             Assert.IsTrue(root.Contains("TestSlicer"));
+            Assert.IsTrue(Path.IsPathRooted(root), root);
         }
 
         // Helper to build a minimal temp config dir with system profiles
