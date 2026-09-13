@@ -68,6 +68,8 @@ Mac/Linux:
 
 `--template <path>`: Use a custom note template. Absolute paths work better. See README for more details on syntax
 
+Any other `--flag` or `-x` that isn't one of the options above is reported as an error rather than silently ignored.
+
 ## Console Output & Troubleshooting
 
 A normal run prints a short progress summary and then opens your browser:
