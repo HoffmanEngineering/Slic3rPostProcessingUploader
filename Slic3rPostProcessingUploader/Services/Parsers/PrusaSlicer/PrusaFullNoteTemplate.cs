@@ -79,7 +79,6 @@
                 Support Material:
                   Support Material:
                     Generate Support: {{support_material}}
-                    Auto generated Supports: {{support_material_auto}}
                     Overhang Threshold: {{support_material_threshold}}
                     Enforce Support For The First: {{support_material_enforce_layers}}
                     First Layer Density: {{raft_first_layer_density}}
@@ -90,7 +89,7 @@
                     Raft Expansion: {{raft_expansion}}
                   Options for Support Material:
                     Style: {{support_material_style}}
-                    Top Contact Z Distance: {{support_material_top_contact_distance}}
+                    Top Contact Z Distance: {{support_material_contact_distance}}
                     Bottom Contact Z Distance: {{support_material_bottom_contact_distance}}
                     Pattern: {{support_material_pattern}}
                     With Sheath Around the Support: {{support_material_with_sheath}}
@@ -173,10 +172,7 @@
                     Temperature Variation: 
                   Wipe Tower:
                     Enable: {{wipe_tower}}
-                    Position X: {{wipe_tower_x}}
-                    Position Y: {{wipe_tower_y}}
                     Width: {{wipe_tower_width}}
-                    Wipe Tower Rotation Angle: {{wipe_tower_rotation_angle}}
                     Wipe Tower Brim Width: {{wipe_tower_brim_width}}
                     Maximal Bridging Distance: {{wipe_tower_bridging}}
                     Stabilization Cone Apex Angle: {{wipe_tower_cone_angle}}

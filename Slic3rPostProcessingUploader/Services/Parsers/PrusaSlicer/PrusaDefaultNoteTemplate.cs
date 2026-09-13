@@ -47,7 +47,6 @@
                 Support Material:
                   Support Material:
                     Generate Support: {{support_material}}
-                    Auto generated Supports: {{support_material_auto}}
                     Overhang Threshold: {{support_material_threshold}}
                   Raft:
                     Raft Layers: {{raft_layers}}
@@ -87,8 +86,6 @@
                     Enable: {{ooze_prevention}}
                   Wipe Tower:
                     Enable: {{wipe_tower}}
-                    Position X: {{wipe_tower_x}}
-                    Position Y: {{wipe_tower_y}}
                     Width: {{wipe_tower_width}}
                 
                 Advanced:

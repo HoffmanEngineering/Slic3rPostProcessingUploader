@@ -15,10 +15,14 @@ Create a free account at https://www.3dprintlog.com today and enjoy all the feat
 This is a new project, currently a work in progress. Feel free to help out by submitting requests, bug reports, or helping to make Pull Requests.
 
 - OrcaSlicer
-- PrusaSlicer
+- PrusaSlicer (2.x and 3.0 alpha)
 - Bambu Studio
 - FLSun Slicer
 - Anycubic Slicer Next
+
+#### PrusaSlicer 3.0
+
+PrusaSlicer 3.0 still has the `Post-processing scripts` print setting, so this uploader works there unchanged. The 3.0 Lua plugin system is a separate thing: it can only add objects to the plate and cannot see exported G-code or reach the network, so a post-processing script remains the way to log prints from PrusaSlicer. Verified against 3.0.0-alpha11; the format is still experimental, so report anything that stops parsing.
 
 #### Partial Support for: (templates with full settings up next)
 
