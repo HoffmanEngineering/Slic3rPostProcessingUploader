@@ -33,14 +33,14 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
                 [
                     new PrintFilamentSummaryDto
                     {
-                        Filament = new FilamentSummary { DisplayName = "Other" },
+                        Filament = new FilamentSummary { Id = "00000000-0000-0000-0000-000000000000", DisplayName = "Other" },
                         EstimatedLengthInM = 1.52,
                         EstimatedAmountMg = 4500,
                         Notes = "Slot 1 · Teal (#26A69A) · PLA"
                     },
                     new PrintFilamentSummaryDto
                     {
-                        Filament = new FilamentSummary { DisplayName = "Other" },
+                        Filament = new FilamentSummary { Id = "00000000-0000-0000-0000-000000000000", DisplayName = "Other" },
                         EstimatedLengthInM = 0.5,
                         Notes = "Slot 2 · Red (#FF0000) · PETG"
                     }

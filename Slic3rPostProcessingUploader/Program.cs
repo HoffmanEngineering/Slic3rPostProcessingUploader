@@ -108,7 +108,7 @@ try
 
     telemetry.TrackEvent("Parse", new Dictionary<string, object> {
         { "Slicer", dto.Slicer },
-        { "PluginVersion", dto.PluginVersion },
+        { "PluginVersion", dto.PluginVersion ?? "Unknown" },
         { "CuraVersion", dto.CuraVersion },
         { "ParseDurationMs", parseStopwatch.ElapsedMilliseconds }
     });
@@ -131,7 +131,7 @@ try
 
     string printUrl = PrintMetadata.BuildPrintUrl(newPrintUrl, dto, settingId);
     output.Info($"Opening {printUrl}");
-    OpenBrowser(output, printUrl);
+    OpenBrowser(printUrl);
 }
 catch (Exception e)
 {
@@ -218,11 +218,11 @@ void LogDto(string? debugPath, CuraSettingDto dto)
     }
 }
 
-static void OpenBrowser(ConsoleOutput output, string url)
+static void OpenBrowser(string url)
 {
     try
     {
-        new Browser(output).Open(url);
+        Browser.Open(url);
     }
     catch (Exception e)
     {
