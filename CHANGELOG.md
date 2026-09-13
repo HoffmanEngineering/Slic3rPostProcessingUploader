@@ -1,4 +1,5 @@
 # Unreleased
+- Fixed estimated print times over 24 hours being logged too short: the `d` (days) token in slicer time strings like `1d 6h 12m 5s` was being silently dropped
 - Cleaner console output: a short ✓ progress summary on success, plain-English errors with a suggested fix on failure. Raw HTTP responses and stack traces now only appear on screen with `--debug` (they are still written to `slic3r-debug.txt`)
 - On error the console window now stays open for 30 seconds (or until a key is pressed) and the process exits with code 1 so slicers can report the failure
 - If the browser can't be opened, the 3D Print Log URL is printed so it can be opened manually
