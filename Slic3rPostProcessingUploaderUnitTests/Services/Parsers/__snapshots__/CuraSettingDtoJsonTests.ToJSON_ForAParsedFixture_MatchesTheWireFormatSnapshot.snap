@@ -1,0 +1,31 @@
+﻿{
+  "slicer": "OrcaSlicer",
+  "curaVersion": "2.2.0-rc",
+  "pluginVersion": "1.1.2.0",
+  "settings": {
+    "note": "Settings:\n\nQuality:\n  Layer Height:\n    Layer Height: 0.2\n    First Layer Height: 0.200\n  Line Width:\n    Default Line Width: 0.4\n  Seam:\n    Seam Position: aligned\n  Precision:\n    Precise Wall: 0\n  Ironing:\n    Ironing: no ironing\n  Wall Generator:\n    Generator: arachne\n  Walls And Surfaces:\n    Only One Wall on Top Surfaces: 0\n\nStrength:\n  Walls:\n    Wall Loops: 3\n  Top/Bottom Shells:\n    Top Shell Layers: 4\n    Top Shell Thickness: 0.8\n    Bottom Shell Layers: 3\n    Bottom Shell Thickness: 0\n  Infill:\n    Sparse Infill Density: 15%\n    Sparse Infill Pattern: crosshatch\n\nSpeed:\n  First Layer Speed:\n    First Layer: 45\n    Number of Slow Layers: 0\n  Other Layers Speed:\n    Outer Wall: 60\n    Inner Wall: 80\n    Sparse Infill: 80\n    Internal Solid Infill: 80\n    Top Surface: 50\n  Travel Speed:\n    Travel: 150\n\nSupport:\n  Support:\n    Enable Support: 0\n    Type: normal(auto)\n    Style: default\n    Threshold Angle: 30\n    On Build Plate Only: 0\n  Raft:\n    Raft Layers: 0\n\nMultimaterial:\n  Prime Tower:\n    Enable: 0\n    Width: 60\n    Brim Width: 3\n  Ooze Prevention:\n    Enable: 0\n  Flush Options:\n    Flush into Objects\u0027 Infill: 0\n    Flush into Objects\u0027 Support: 1\n  Advanced:\n    Use Beam Interlocking: 0\n\nOther:\n  Skirt:\n    Skirt Type: combined\n    Skirt Loops: 0\n    Skirt Min Extrusion Length: 4\n  Brim:\n    Brim Type: auto_brim\n    Brim Width: 5\n  Special Mode:\n    Slicing Mode: regular\n    Print Sequence: by layer\n    Spiral Vase: 0\n    Fuzzy Skin: none",
+    "print_name": "Calibration Cube",
+    "estimated_print_time_seconds": 1319,
+    "material_used_mg": null,
+    "snapshot": "Nv59w1sKeZ\u002BeeXttiPCdr5d/AaeYsmRmruTM/ddpulE=",
+    "file_name": "orcaslicer-2.2.0-rc-calibration-cube.gcode",
+    "filamentUsage": [
+      {
+        "id": null,
+        "filament": {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "displayName": "Other"
+        },
+        "amountMg": null,
+        "lengthInM": null,
+        "volumeMl": null,
+        "estimatedAmountMg": null,
+        "estimatedLengthInM": 1.52,
+        "estimatedVolumeMl": null,
+        "source": 2,
+        "estimatedSource": 2,
+        "notes": "Slot 1 \u00B7 Teal (#26A69A) \u00B7 PLA"
+      }
+    ]
+  }
+}

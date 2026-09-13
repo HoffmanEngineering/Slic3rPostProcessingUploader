@@ -1,9 +1,28 @@
 name: CI
 
-on: [push]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+# Read-only. This workflow restores, builds, tests and uploads an artifact; none of
+# that writes to the repository. An explicit block also pins the scope against the
+# repository-wide default, which is a setting that can change outside this file.
+permissions:
+  contents: read
+
+# The build matrix runs on Linux, Windows and macOS runners, so a superseded run is an
+# expensive thing to leave running.
+#
+# Keyed on the PR number when there is one, so a push to a branch and the pull_request
+# run for that same branch do not cancel each other.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -13,31 +32,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # One RID per OS: this is a smoke test that the code builds and passes on each
+        # platform. release.yml is what publishes every RID the csproj declares.
         platform:
-          - {
-              name: Linux,
-              os: ubuntu-latest,
-              filepath: "/home/runner/work/Slic3rPostProcessingUploader/Slic3rPostProcessingUploader/Slic3rPostProcessingUploader/bin/Release/net10.0/linux-x64/publish/",
-            }
-          - {
-              name: Windows VS2022,
-              os: windows-latest,
-              filepath: "D:\\a\\Slic3rPostProcessingUploader\\Slic3rPostProcessingUploader\\Slic3rPostProcessingUploader\\bin\\Release\\net10.0\\win-x64\\publish\\",
-            }
-          - {
-              name: MacOS,
-              os: macos-latest,
-              filepath: "/Users/runner/work/Slic3rPostProcessingUploader/Slic3rPostProcessingUploader/Slic3rPostProcessingUploader/bin/Release/net10.0/osx-arm64/publish/",
-            }
+          - { name: Linux, os: ubuntu-latest, rid: linux-x64 }
+          - { name: Windows, os: windows-latest, rid: win-x64 }
+          - { name: MacOS, os: macos-latest, rid: osx-arm64 }
         dotnet:
-          - { name: .NET 10, version: "10.0.x", filepath: "net10.0" }
+          - { name: .NET 10, version: "10.0.x", tfm: net10.0 }
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
       - name: Setup .NET ${{ matrix.dotnet.version }} SDK
         id: setup-dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet.version }}
       - name: Enforce SDK Version
@@ -51,9 +60,10 @@ jobs:
       - name: Test
         run: dotnet test --no-restore --verbosity normal
       - name: Publish
-        run: dotnet publish --configuration Release
+        run: dotnet publish Slic3rPostProcessingUploader/Slic3rPostProcessingUploader.csproj --configuration Release --runtime ${{ matrix.platform.rid }}
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: publish-${{ matrix.platform.name }}-${{ matrix.dotnet.name }}
-          path: ${{ matrix.platform.filepath }}
+          name: publish-${{ matrix.platform.rid }}
+          # Relative to the workspace, so this does not depend on where the runner checks out.
+          path: Slic3rPostProcessingUploader/bin/Release/${{ matrix.dotnet.tfm }}/${{ matrix.platform.rid }}/publish/

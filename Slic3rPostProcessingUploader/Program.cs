@@ -5,12 +5,20 @@ using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Text.Json;
 
 [assembly: InternalsVisibleTo("Slic3rPostProcessingUploaderUnitTests")]
 
 TelemetryService? telemetry = null;
+ConsoleOutput output = ConsoleOutput.ForConsole(debugFile: null, verbose: false);
+StreamWriter? debugFile = null;
+int exitCode = 0;
+// Errors thrown before the header is printed (bad arguments, unwritable debug folder) would otherwise leave the
+// user looking at a bare error with no indication of which program produced it.
+bool headerShown = false;
+
+// Total end-to-end wall time, reported in the UploadResult event so real user-experienced latency
+// (including the telemetry/HTTP timeouts below) is visible, not just the time spent parsing.
+var totalStopwatch = Stopwatch.StartNew();
 
 try
 {
@@ -18,6 +26,18 @@ try
 
     string newPrintUrl = arguments.UseLocalDev ? "https://localhost:4200/prints/new/cura" : "https://www.3dprintlog.com/prints/new/cura";
     string apiUrl = arguments.UseLocalDev ? "https://localhost:5001/api/Cura/settings" : "https://api.3dprintlog.com/api/Cura/settings";
+
+    if (arguments.DisplayHelp)
+    {
+        DisplayHelp(arguments);
+        return 0;
+    }
+
+    if (arguments.DisplayVersion)
+    {
+        Console.WriteLine($"Slic3rPostProcessingUploader v{new VersionService().GetVersion()}");
+        return 0;
+    }
 
     telemetry = new TelemetryService(arguments.DisableTelemetry);
 
@@ -34,20 +54,19 @@ try
         { "UseFullTemplate", arguments.UseFullNoteTemplate },
         { "UseCustomTemplate", !string.IsNullOrEmpty(arguments.NoteTemplatePath) },
         { "DebugEnabled", !string.IsNullOrEmpty(arguments.DebugPath) },
+        { "DryRun", arguments.DryRun },
         { "LocalDev", arguments.UseLocalDev },
         { "TelemetryDisabled", arguments.DisableTelemetry }
     });
 
-    if (arguments.DisplayHelp)
-    {
-        DisplayHelp(arguments);
-        return;
-    }
+    debugFile = OpenDebugFile(arguments.DebugPath);
+    output = ConsoleOutput.ForConsole(debugFile, verbose: debugFile != null);
 
-    if (arguments.DisplayVersion)
+    output.Header(new VersionService().GetVersion());
+    headerShown = true;
+    if (!string.IsNullOrEmpty(arguments.DebugPath))
     {
-        Console.WriteLine($"Slic3rPostProcessingUploader v{new VersionService().GetVersion()}");
-        return;
+        output.Info($"Debug output: {arguments.DebugPath}");
     }
 
     // Handle install/uninstall wizard modes
@@ -56,90 +75,146 @@ try
         string exePath = Environment.ProcessPath ?? Environment.GetCommandLineArgs()[0];
         var wizard = new WizardService(SlicerInstallerRegistry.All, exePath);
         if (arguments.Mode == AppMode.Uninstall)
-            wizard.RunUninstall(arguments.IsDryRun);
+            wizard.RunUninstall(arguments.DryRun);
         else
-            wizard.RunInstall(arguments.IsDryRun);
-        return;
+            wizard.RunInstall(arguments.DryRun);
+        return 0;
     }
-
-    SetupDebugging(arguments.DebugPath);
-
-    Console.WriteLine("Starting the 3D Print Log Uploader");
 
     LogEnvironmentVariables(arguments.DebugPath);
 
+    // Kick off the GitHub release lookup now so it runs alongside parsing and the upload; the result is only read
+    // (and only shown) once the print has been handled, so a slow or unreachable GitHub never delays the real work.
+    using HttpClient updateClient = new() { Timeout = UpdateCheckService.CheckTimeout };
+    Task<UpdateCheckService.Result?> updateCheck = new UpdateCheckService(updateClient, output).CheckAsync(new VersionService().GetVersion());
+
     if (string.IsNullOrEmpty(arguments.InputFile))
     {
-        throw new ArgumentException("No input file specified. Please provide a G-code file path as the last argument.");
+        throw new UserFacingException(
+            "No G-code file was given.",
+            "Add this program to your slicer's Post-Processing Scripts; the slicer passes the G-code path automatically.");
     }
 
-    string fileContents = File.ReadAllText(arguments.InputFile);
+    if (!File.Exists(arguments.InputFile))
+    {
+        throw new UserFacingException(
+            $"G-code file not found: {arguments.InputFile}",
+            "The slicer should pass the exported G-code path as the last argument.");
+    }
+
+    // Binary G-code (PrusaSlicer .bgcode) is decoded into the ASCII header it stands for; the parsers never see the
+    // difference. For text files only the head and tail carry slicer metadata, so that is all we read. Debug mode
+    // reads the whole file so the full contents can be logged for troubleshooting.
+    string fileContents = BinaryGcode.IsBinaryGcodeFile(arguments.InputFile)
+        ? BinaryGcode.ReadFromFile(arguments.InputFile)
+        : string.IsNullOrEmpty(arguments.DebugPath)
+            ? GcodeWindow.ReadFromFile(arguments.InputFile)
+            : File.ReadAllText(arguments.InputFile);
     LogFileContents(arguments.DebugPath, fileContents);
 
-    IGcodeParser parser = ParserFactory.GetParser(arguments, telemetry, fileContents);
+    IGcodeParser parser = ParserFactory.GetParser(arguments, telemetry, output, fileContents);
 
     // Track parse duration
     var parseStopwatch = Stopwatch.StartNew();
     CuraSettingDto dto = parser.ParseGcode(fileContents);
     parseStopwatch.Stop();
 
-    var outputName = Environment.GetEnvironmentVariable("SLIC3R_PP_OUTPUT_NAME");
-    dto.settings.file_name = outputName != null ? Path.GetFileName(outputName) : Path.GetFileName(arguments.InputFile);
-    dto.settings.print_name = new TitleService().GetTitle(Path.GetFileNameWithoutExtension(dto.settings.file_name));
-    dto.PluginVersion = new VersionService().GetVersion();
+    PrintMetadata.Apply(dto, arguments.InputFile, Environment.GetEnvironmentVariable("SLIC3R_PP_OUTPUT_NAME"), new VersionService().GetVersion());
+
+    output.Step($"Detected {dto.Slicer} {dto.CuraVersion}");
+    output.Step($"Parsed {dto.settings.file_name} ({DescribeTemplate(arguments)} template, {parseStopwatch.ElapsedMilliseconds} ms)");
 
     telemetry.TrackEvent("Parse", new Dictionary<string, object> {
         { "Slicer", dto.Slicer },
-        { "PluginVersion", dto.PluginVersion },
+        { "PluginVersion", dto.PluginVersion ?? "Unknown" },
         { "CuraVersion", dto.CuraVersion },
         { "ParseDurationMs", parseStopwatch.ElapsedMilliseconds }
     });
 
     LogDto(arguments.DebugPath, dto);
 
-    await UploadToApi(telemetry, apiUrl, dto, arguments.DebugPath, newPrintUrl);
+    // --dry-run stops here: the note and DTO are shown so template authors can check their output, but nothing
+    // is uploaded and no browser is opened. Startup/CLIFlags/Parse telemetry above is still sent (tagged
+    // DryRun=true in CLIFlags); no UploadResult event is emitted because no upload happens.
+    if (arguments.DryRun)
+    {
+        DryRunReport.Write(output, dto, arguments.DebugPath);
+        await ReportUpdateIfAvailable(updateCheck);
+        return 0;
+    }
+
+    using HttpClient httpClient = new() { Timeout = UploadService.UploadTimeout };
+    string settingId = await new UploadService(httpClient, telemetry, output)
+        .UploadAsync(apiUrl, dto, arguments.DebugPath, () => totalStopwatch.ElapsedMilliseconds);
+    output.Step("Uploaded print settings to 3dprintlog.com");
+
+    string printUrl = PrintMetadata.BuildPrintUrl(newPrintUrl, dto, settingId);
+    output.Info($"Opening {printUrl}");
+    OpenBrowser(printUrl);
+
+    await ReportUpdateIfAvailable(updateCheck);
 }
 catch (Exception e)
 {
-    Console.WriteLine(e.Message);
-    Console.WriteLine(e.ToString());
+    if (!headerShown)
+    {
+        output.Header(new VersionService().GetVersion());
+    }
+
+    output.ReportException(e);
     telemetry?.TrackException(e, "Main");
+    exitCode = 1;
+    ConsolePause.WaitForKeyOrTimeout(output, TimeSpan.FromSeconds(30));
 }
 finally
 {
     telemetry?.Dispose();
+    debugFile?.Dispose();
 }
+
+return exitCode;
 
 void DisplayHelp(ArgumentParser arguments)
 {
     arguments.DisplayHelpDocs();
 
-    Console.WriteLine("Press any key to exit");
-    Console.ReadKey();
-    return;
+    ConsolePause.WaitForKeyOrTimeout(output, TimeSpan.FromSeconds(10));
 }
 
-void SetupDebugging(string debugPath)
+// The check itself never throws (see UpdateCheckService); this only decides whether there is anything to say.
+async Task ReportUpdateIfAvailable(Task<UpdateCheckService.Result?> updateCheck)
 {
-    if (!string.IsNullOrEmpty(debugPath))
+    UpdateCheckService.Result? update = await updateCheck;
+    if (update != null)
     {
-        if (!Directory.Exists(debugPath))
-        {
-            _ = Directory.CreateDirectory(debugPath);
-        }
-
-        string debugFileName = "slic3r-debug.txt";
-        string path = Path.Combine(debugPath, debugFileName);
-
-        var fileWriter = new StreamWriter(path, true) { AutoFlush = true };
-        var dualWriter = new DualWriter(Console.Out, fileWriter);
-        Console.SetOut(dualWriter);
-
-        Console.WriteLine($"Debugging enabled, logging to {debugPath}");
+        UpdateCheckService.Report(output, update);
     }
 }
 
-void LogEnvironmentVariables(string debugPath)
+static string DescribeTemplate(ArgumentParser arguments) =>
+    arguments.UseDefaultNoteTemplate ? "default" : arguments.UseFullNoteTemplate ? "full" : "custom";
+
+static StreamWriter? OpenDebugFile(string? debugPath)
+{
+    if (string.IsNullOrEmpty(debugPath))
+    {
+        return null;
+    }
+
+    try
+    {
+        Directory.CreateDirectory(debugPath);
+        return new StreamWriter(Path.Combine(debugPath, "slic3r-debug.txt"), true) { AutoFlush = true };
+    }
+    catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+    {
+        throw new UserFacingException(
+            $"Could not create the debug folder: {debugPath}",
+            "Check that the --debug path is writable.", e);
+    }
+}
+
+void LogEnvironmentVariables(string? debugPath)
 {
     if (!string.IsNullOrEmpty(debugPath))
     {
@@ -155,7 +230,7 @@ void LogEnvironmentVariables(string debugPath)
     }
 }
 
-void LogFileContents(string debugPath, string fileContents)
+void LogFileContents(string? debugPath, string fileContents)
 {
     if (!string.IsNullOrEmpty(debugPath))
     {
@@ -165,72 +240,25 @@ void LogFileContents(string debugPath, string fileContents)
     }
 }
 
-void LogDto(string debugPath, CuraSettingDto dto)
+void LogDto(string? debugPath, CuraSettingDto dto)
 {
     if (!string.IsNullOrEmpty(debugPath))
     {
-        string dtoFileName = "slic3r-dto.json";
-        string path = Path.Combine(debugPath, dtoFileName);
+        string path = Path.Combine(debugPath, DryRunReport.DtoFileName);
         File.WriteAllText(path, dto.ToJSON());
     }
 }
 
-async Task UploadToApi(TelemetryService telemetry, string apiUrl, CuraSettingDto dto, string debugPath, string newPrintUrl)
+static void OpenBrowser(string url)
 {
-    using HttpClient client = new();
-    using StringContent content = new(dto.ToJSON(), Encoding.UTF8, "application/json");
-
     try
     {
-        HttpResponseMessage response = await client.PostAsync(apiUrl, content);
-        Console.WriteLine($"Response: {response}");
-
-        string responseContent = await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
-        {
-            LogApiResponse(debugPath, responseContent);
-            telemetry.TrackEvent("UploadResult", new Dictionary<string, object> {
-                { "Success", false },
-                { "StatusCode", (int)response.StatusCode },
-                { "Reason", response.ReasonPhrase ?? "Unknown" }
-            });
-            throw new Exception($"Failed to upload to 3dprintlog.com: {response.StatusCode}");
-        }
-
-        LogApiResponse(debugPath, responseContent);
-
-        var apiResponse = JsonSerializer.Deserialize(responseContent, ApiResponseContext.Default.ApiResponse);
-        if (apiResponse == null || string.IsNullOrEmpty(apiResponse.NewSettingId))
-        {
-            telemetry.TrackEvent("UploadResult", new Dictionary<string, object> {
-                { "Success", false },
-                { "StatusCode", (int)response.StatusCode },
-                { "Reason", "Invalid API response: missing newSettingId" }
-            });
-            throw new Exception($"Invalid API response: missing newSettingId");
-        }
-
-        telemetry.TrackEvent("UploadResult", new Dictionary<string, object> {
-            { "Success", true },
-            { "StatusCode", (int)response.StatusCode }
-        });
-
-        new Browser().Open($"{newPrintUrl}?cura_version={dto.CuraVersion}&plugin_version={dto.PluginVersion}&settingId={apiResponse.NewSettingId}");
+        Browser.Open(url);
     }
     catch (Exception e)
     {
-        Console.WriteLine(e.ToString());
-        telemetry.TrackException(e, "UploadToApi");
-    }
-}
-
-void LogApiResponse(string debugPath, string responseContent)
-{
-    if (!string.IsNullOrEmpty(debugPath))
-    {
-        string responseFileName = "3d-print-log-api-response.json";
-        string path = Path.Combine(debugPath, responseFileName);
-        File.WriteAllText(path, responseContent);
+        throw new UserFacingException(
+            "Could not open your web browser.",
+            $"Open this link manually to finish logging the print:\n    {url}", e);
     }
 }

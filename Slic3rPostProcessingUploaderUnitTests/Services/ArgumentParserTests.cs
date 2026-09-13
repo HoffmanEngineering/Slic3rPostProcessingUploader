@@ -80,10 +80,33 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
-        public void Constructor_WithTemplateAsLastArgument_ThrowsException()
+        public void Constructor_WithTemplateAsLastArgument_ThrowsUserFacingException()
         {
-            new ArgumentParser(["input.gcode", "--template"]);
+            var ex = Assert.ThrowsException<UserFacingException>(() => new ArgumentParser(["input.gcode", "--template"]));
+            Assert.AreEqual("--template requires a path argument", ex.Message);
+        }
+
+        [TestMethod]
+        public void Constructor_WithEmptyTemplatePath_ThrowsUserFacingException()
+        {
+            var ex = Assert.ThrowsException<UserFacingException>(() => new ArgumentParser(["--template", "", "input.gcode"]));
+            Assert.AreEqual("Note template path cannot be null or empty", ex.Message);
+        }
+
+        [TestMethod]
+        public void Constructor_WithTemplatePathAsFinalArgument_InputFileIsNull()
+        {
+            // No G-code path was given at all; the value belongs to --template, so it must not be mistaken for the input file.
+            var parser = new ArgumentParser(["--template", "my.txt"]);
+            Assert.AreEqual("my.txt", parser.NoteTemplatePath);
+            Assert.IsNull(parser.InputFile);
+        }
+
+        [TestMethod]
+        public void Constructor_WithTemplatePathSameAsInputFile_ThrowsUserFacingException()
+        {
+            var ex = Assert.ThrowsException<UserFacingException>(() => new ArgumentParser(["--template", "input.gcode", "input.gcode"]));
+            Assert.AreEqual("Note template path cannot be the same as the G-code file", ex.Message);
         }
 
         [TestMethod]
@@ -104,6 +127,41 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
 
         #endregion
 
+        #region Dry Run Flag Tests
+
+        [TestMethod]
+        public void Constructor_WithoutDryRunFlag_DryRunIsFalse()
+        {
+            var parser = new ArgumentParser(["input.gcode"]);
+            Assert.IsFalse(parser.DryRun);
+        }
+
+        [TestMethod]
+        public void Constructor_WithDryRunFlag_SetsDryRun()
+        {
+            var parser = new ArgumentParser(["--dry-run", "input.gcode"]);
+            Assert.IsTrue(parser.DryRun);
+            Assert.AreEqual("input.gcode", parser.InputFile);
+        }
+
+        [TestMethod]
+        public void Constructor_WithDryRunAndTemplate_SetsBoth()
+        {
+            var parser = new ArgumentParser(["--dry-run", "--template", "my.txt", "input.gcode"]);
+            Assert.IsTrue(parser.DryRun);
+            Assert.AreEqual("my.txt", parser.NoteTemplatePath);
+        }
+
+        [TestMethod]
+        public void Constructor_WithDryRunAsLastArgument_InputFileIsNull()
+        {
+            var parser = new ArgumentParser(["--dry-run"]);
+            Assert.IsTrue(parser.DryRun);
+            Assert.IsNull(parser.InputFile);
+        }
+
+        #endregion
+
         #region Debug Flag Tests
 
         [TestMethod]
@@ -114,17 +172,33 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
-        public void Constructor_WithDebugAsLastArgument_ThrowsException()
+        public void Constructor_WithDebugAsLastArgument_ThrowsUserFacingException()
         {
-            new ArgumentParser(["input.gcode", "--debug"]);
+            var ex = Assert.ThrowsException<UserFacingException>(() => new ArgumentParser(["input.gcode", "--debug"]));
+            Assert.AreEqual("--debug requires a path argument", ex.Message);
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
-        public void Constructor_WithDebugPathStartingWithDashes_ThrowsException()
+        public void Constructor_WithDebugPathStartingWithDashes_ThrowsUserFacingException()
         {
-            new ArgumentParser(["--debug", "--invalid", "input.gcode"]);
+            var ex = Assert.ThrowsException<UserFacingException>(() => new ArgumentParser(["--debug", "--invalid", "input.gcode"]));
+            Assert.AreEqual("Debug path cannot start with --: --invalid", ex.Message);
+        }
+
+        [TestMethod]
+        public void Constructor_WithDebugPathAsFinalArgument_InputFileIsNull()
+        {
+            // This is the --help example run outside a slicer: the path belongs to --debug and there is no G-code file.
+            var parser = new ArgumentParser(["--default", "--debug", "C:\\debug\\"]);
+            Assert.AreEqual("C:\\debug\\", parser.DebugPath);
+            Assert.IsNull(parser.InputFile);
+        }
+
+        [TestMethod]
+        public void Constructor_WithDebugPathSameAsInputFile_ThrowsUserFacingException()
+        {
+            var ex = Assert.ThrowsException<UserFacingException>(() => new ArgumentParser(["--debug", "input.gcode", "input.gcode"]));
+            Assert.AreEqual("Debug path cannot be the same as input file", ex.Message);
         }
 
         #endregion
@@ -186,6 +260,65 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
 
         #endregion
 
+        #region Unknown Flag Tests
+
+        [TestMethod]
+        public void Constructor_WithMisspelledFullFlag_ThrowsUserFacingException()
+        {
+            var ex = Assert.ThrowsException<UserFacingException>(() => new ArgumentParser(["--fulll", "input.gcode"]));
+            Assert.AreEqual("Unknown option: --fulll", ex.Message);
+            Assert.AreEqual("Run with --help to see the available options.", ex.Hint);
+        }
+
+        [TestMethod]
+        public void Constructor_WithWrongCaseDebugFlag_ThrowsUserFacingException()
+        {
+            var ex = Assert.ThrowsException<UserFacingException>(() => new ArgumentParser(["--Debug", "input.gcode"]));
+            Assert.AreEqual("Unknown option: --Debug", ex.Message);
+            Assert.AreEqual("Run with --help to see the available options.", ex.Hint);
+        }
+
+        [TestMethod]
+        public void Constructor_WithUnknownShortFlag_ThrowsUserFacingException()
+        {
+            var ex = Assert.ThrowsException<UserFacingException>(() => new ArgumentParser(["-x", "input.gcode"]));
+            Assert.AreEqual("Unknown option: -x", ex.Message);
+            Assert.AreEqual("Run with --help to see the available options.", ex.Hint);
+        }
+
+        [TestMethod]
+        public void Constructor_WithUnknownFlagAsOnlyArgument_ThrowsUserFacingException()
+        {
+            // A lone unknown flag is not treated as the input file - it's still reported as an unknown option.
+            var ex = Assert.ThrowsException<UserFacingException>(() => new ArgumentParser(["--fulll"]));
+            Assert.AreEqual("Unknown option: --fulll", ex.Message);
+        }
+
+        [TestMethod]
+        public void Constructor_WithUnknownFlagAsLastArgumentAfterKnownFlag_ThrowsUserFacingException()
+        {
+            var ex = Assert.ThrowsException<UserFacingException>(() => new ArgumentParser(["--default", "--fulll"]));
+            Assert.AreEqual("Unknown option: --fulll", ex.Message);
+        }
+
+        [TestMethod]
+        public void Constructor_WithTemplatePathValue_DoesNotTreatValueAsUnknownFlag()
+        {
+            // The path passed to --template should not itself be flag-checked, even though it's not the last argument.
+            var parser = new ArgumentParser(["--template", "C:\\templates\\custom.txt", "input.gcode"]);
+            Assert.AreEqual("C:\\templates\\custom.txt", parser.NoteTemplatePath);
+        }
+
+        [TestMethod]
+        public void Constructor_WithDebugPathValue_DoesNotTreatValueAsUnknownFlag()
+        {
+            // The path passed to --debug should not itself be flag-checked, even though it's not the last argument.
+            var parser = new ArgumentParser(["--debug", "C:\\debug\\", "input.gcode"]);
+            Assert.AreEqual("C:\\debug\\", parser.DebugPath);
+        }
+
+        #endregion
+
         #region Default Values Tests
 
         [TestMethod]
@@ -231,7 +364,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
         {
             var parser = new ArgumentParser(["install", "--dry-run"]);
             Assert.AreEqual(AppMode.Install, parser.Mode);
-            Assert.IsTrue(parser.IsDryRun);
+            Assert.IsTrue(parser.DryRun);
         }
 
         [TestMethod]
@@ -239,7 +372,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
         {
             var parser = new ArgumentParser(["uninstall", "--dry-run"]);
             Assert.AreEqual(AppMode.Uninstall, parser.Mode);
-            Assert.IsTrue(parser.IsDryRun);
+            Assert.IsTrue(parser.DryRun);
         }
 
         [TestMethod]
@@ -253,7 +386,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
         public void Constructor_WithInstallMode_IsDryRunDefaultsFalse()
         {
             var parser = new ArgumentParser(["install"]);
-            Assert.IsFalse(parser.IsDryRun);
+            Assert.IsFalse(parser.DryRun);
         }
 
         [TestMethod]

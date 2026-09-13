@@ -10,6 +10,7 @@ Options:
 --version, -v: Display the version number.
 --local-dev: Use the local development environment
 --debug <path>: Save debug information to the specified path
+--dry-run: Parse the G-code and print the rendered note, key parsed fields, and the DTO JSON to the console without uploading to 3dprintlog.com or opening a browser. Useful for checking a custom --template.
 --opt-out-telemetry: Disable telemetry tracking. To help improve the plugin, we track slicer and plugin versions, as well as log errors that are thrown. No personal data is collected.
 
 Note Template Options:
@@ -18,4 +19,5 @@ Note Template Options:
   --template <path>: Use a custom note template. Absolute paths work better. See README for more details on syntax
 
 Example: Slic3rPostProcessingUploader --default --debug C:\debug\
+Example: Slic3rPostProcessingUploader --dry-run --template C:\templates\my.txt C:\prints\benchy.gcode
 

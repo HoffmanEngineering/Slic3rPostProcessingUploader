@@ -6,161 +6,97 @@ using Slic3rPostProcessingUploader.Services.Parsers.PrusaSlicer;
 
 namespace Slic3rPostProcessingUploader.Services.Parsers
 {
+    /// <summary>
+    /// Everything the factory needs to know about one slicer. <paramref name="Name"/> is used in telemetry event names.
+    /// </summary>
+    internal sealed record SlicerRegistration(
+        string Name,
+        Func<string, bool> Detect,
+        Func<INoteTemplate> DefaultTemplate,
+        Func<INoteTemplate> FullTemplate,
+        Func<string?, GcodeParserBase> Create);
+
     internal class ParserFactory
     {
-        public static IGcodeParser GetParser(ArgumentParser arguments, TelemetryService telemetry, string gcode)
+        /// <summary>
+        /// Registry order matters: it is the detection order, and the heuristic fallback resolves ties in favour of
+        /// the earlier entry (so Orca is the default when nothing matches at all).
+        /// </summary>
+        private static readonly SlicerRegistration[] Slicers =
+        [
+            new("Orca", OrcaParser.IsOrcaSlicer, () => EmbeddedNoteTemplate.Default("OrcaSlicer"), () => EmbeddedNoteTemplate.Full("OrcaSlicer"), t => new OrcaParser(t)),
+            new("Prusa", PrusaParser.IsPrusaSlicer, () => EmbeddedNoteTemplate.Default("PrusaSlicer"), () => EmbeddedNoteTemplate.Full("PrusaSlicer"), t => new PrusaParser(t)),
+            new("FLSun", FLSunParser.IsFLSunSlicer, () => EmbeddedNoteTemplate.Default("FLSunSlicer"), () => EmbeddedNoteTemplate.Full("FLSunSlicer"), t => new FLSunParser(t)),
+            new("BambuStudio", BambuStudioParser.IsBambuStudio, () => EmbeddedNoteTemplate.Default("BambuStudio"), () => EmbeddedNoteTemplate.Full("BambuStudio"), t => new BambuStudioParser(t)),
+            new("AnycubicSlicerNext", AnycubicSlicerNextParser.IsAnycubicSlicerNext, () => EmbeddedNoteTemplate.Default("AnycubicSlicerNext"), () => EmbeddedNoteTemplate.Full("AnycubicSlicerNext"), t => new AnycubicSlicerNextParser(t)),
+        ];
+
+        public static IGcodeParser GetParser(ArgumentParser arguments, TelemetryService telemetry, ConsoleOutput output, string gcode)
         {
             SendTemplateMetrics(arguments, telemetry);
 
-            // search through the gcode to find the slicer used
+            gcode = GcodeWindow.Trim(gcode);
 
-            if (OrcaParser.IsOrcaSlicer(gcode))
+            var slicer = Slicers.FirstOrDefault(s => s.Detect(gcode))
+                ?? FindClosestMatch(gcode, telemetry, output);
+
+            return BuildParser(slicer, arguments);
+        }
+
+        /// <summary>
+        /// Fallback for gcode without a recognized slicer marker: score every slicer's full template against the
+        /// gcode and pick the one with the highest fraction of placeholders that have a value.
+        /// </summary>
+        private static SlicerRegistration FindClosestMatch(string gcode, TelemetryService telemetry, ConsoleOutput output)
+        {
+            output.Warn("Slicer not recognized, using the closest matching parser. Some settings may be missing.");
+
+            // Parsers differ only in the separators they accept, so the gcode is indexed once per distinct separator set.
+            var settingsBySeparators = new Dictionary<string, GcodeSettings>();
+
+            return Slicers.MaxBy(slicer =>
             {
-                return BuildOrcaParser(arguments);
+                var parser = slicer.Create(slicer.FullTemplate().getNoteTemplate());
+                var separators = parser.SettingSeparators.ToString();
+                if (!settingsBySeparators.TryGetValue(separators, out var settings))
+                {
+                    settings = GcodeSettings.Parse(gcode, separators);
+                    settingsBySeparators[separators] = settings;
+                }
+
+                var (numPlaceholders, numMatches) = parser.CountTemplateMatches(settings);
+                var percentMatch = (double)numMatches / numPlaceholders;
+
+                telemetry.TrackEvent($"{slicer.Name}PercentMatch", new Dictionary<string, object> { { "PercentMatch", percentMatch } });
+
+                return percentMatch;
+            })!;
+        }
+
+        private static IGcodeParser BuildParser(SlicerRegistration slicer, ArgumentParser arguments)
+        {
+            INoteTemplate template;
+            if (arguments.UseDefaultNoteTemplate)
+            {
+                template = slicer.DefaultTemplate();
             }
-            else if (PrusaParser.IsPrusaSlicer(gcode))
+            else if (arguments.UseFullNoteTemplate)
             {
-                return BuildPrusaParser(arguments);
+                template = slicer.FullTemplate();
             }
-            else if (FLSunParser.IsFLSunSlicer(gcode))
+            else if (!string.IsNullOrEmpty(arguments.NoteTemplatePath))
             {
-                return BuildFLSunParser(arguments);
-            }
-            else if (BambuStudioParser.IsBambuStudio(gcode))
-            {
-                return BuildBambuStudioParser(arguments);
-            }
-            else if (AnycubicSlicerNextParser.IsAnycubicSlicerNext(gcode))
-            {
-                return BuildAnycubicSlicerNextParser(arguments);
+                template = new NoteTemplateFromFile(arguments.NoteTemplatePath);
             }
             else
             {
-
-                // If the slicer is not recognized, then try and parse using all of them and see which one matches more closely
-                // This is a fallback mechanism in case the slicer is not recognized
-
-                // Try Orca
-                var orcaFullTemplate = new OrcaFullNoteTemplate().getNoteTemplate();
-                var orcaParser = new OrcaParser(orcaFullTemplate);
-                var orcaResults = orcaParser.CountTemplateMatches(gcode);
-                var orcaPercentMatch = (double) orcaResults.numMatches / (double) orcaResults.numPlaceholders;
-
-                telemetry.TrackEvent("OrcaPercentMatch", new Dictionary<string, object> { { "PercentMatch", orcaPercentMatch } });
-
-                // Try Prusa
-                var prusaFullTemplate = new PrusaFullNoteTemplate().getNoteTemplate();
-                var prusaParser = new PrusaParser(prusaFullTemplate);
-                var prusaResults = prusaParser.CountTemplateMatches(gcode);
-                var PrusaPercentMatch = (double) prusaResults.numMatches / (double) prusaResults.numPlaceholders;
-
-                telemetry.TrackEvent("PrusaPercentMatch", new Dictionary<string, object> { { "PercentMatch", PrusaPercentMatch } });
-
-                // Try FL Sun
-                var flsunFullTemplate = new FLSunFullNoteTemplate().getNoteTemplate();
-                var flsunParser = new FLSunParser(flsunFullTemplate);
-                var flsunResults = flsunParser.CountTemplateMatches(gcode);
-                var flsunPercentMatch = (double) flsunResults.numMatches / (double) flsunResults.numPlaceholders;
-
-                telemetry.TrackEvent("FLSunPercentMatch", new Dictionary<string, object> { { "PercentMatch", flsunPercentMatch } });
-
-                // Try Bambu Studio
-                var bambuStudioFullTemplate = new BambuStudioFullNoteTemplate().getNoteTemplate();
-                var bambuStudioParser = new BambuStudioParser(bambuStudioFullTemplate);
-                var bambuStudioResults = bambuStudioParser.CountTemplateMatches(gcode);
-                var bambuStudioPercentMatch = (double)bambuStudioResults.numMatches / (double) bambuStudioResults.numPlaceholders;
-
-                telemetry.TrackEvent("BambuStudioPercentMatch", new Dictionary<string, object> { { "PercentMatch", bambuStudioPercentMatch } });
-
-                // Try Anycubic Slicer Next
-                var anycubicSlicerNextFullTemplate = new AnycubicSlicerNextFullNoteTemplate().getNoteTemplate();
-                var anycubicSlicerNextParser = new AnycubicSlicerNextParser(anycubicSlicerNextFullTemplate);
-                var anycubicSlicerNextResults = anycubicSlicerNextParser.CountTemplateMatches(gcode);
-                var anycubicSlicerNextPercentMatch = (double) anycubicSlicerNextResults.numMatches / (double) anycubicSlicerNextResults.numPlaceholders;
-
-                telemetry.TrackEvent("AnycubicSlicerNextPercentMatch", new Dictionary<string, object> { { "PercentMatch", anycubicSlicerNextPercentMatch } });
-
-                // Compare Results
-                if (orcaPercentMatch > PrusaPercentMatch && orcaPercentMatch > flsunPercentMatch && orcaPercentMatch > bambuStudioPercentMatch && orcaPercentMatch > anycubicSlicerNextPercentMatch)
-                {
-                    return BuildOrcaParser(arguments);
-                }
-                else if (PrusaPercentMatch > orcaPercentMatch && PrusaPercentMatch > flsunPercentMatch && PrusaPercentMatch > bambuStudioPercentMatch && PrusaPercentMatch > anycubicSlicerNextPercentMatch)
-                {
-                    return BuildPrusaParser(arguments);
-                }
-                else if (flsunPercentMatch > orcaPercentMatch && flsunPercentMatch > PrusaPercentMatch && flsunPercentMatch > bambuStudioPercentMatch && flsunPercentMatch > anycubicSlicerNextPercentMatch)
-                {
-                    return BuildFLSunParser(arguments);
-                }
-                else if (bambuStudioPercentMatch > orcaPercentMatch && bambuStudioPercentMatch > PrusaPercentMatch && bambuStudioPercentMatch > flsunPercentMatch && bambuStudioPercentMatch > anycubicSlicerNextPercentMatch)
-                {
-                    return BuildBambuStudioParser(arguments);
-                }
-                else if (anycubicSlicerNextPercentMatch > orcaPercentMatch && anycubicSlicerNextPercentMatch > PrusaPercentMatch && anycubicSlicerNextPercentMatch > flsunPercentMatch && anycubicSlicerNextPercentMatch > bambuStudioPercentMatch)
-                {
-                    return BuildAnycubicSlicerNextParser(arguments);
-                }
-                else
-                {
-                    return BuildOrcaParser(arguments);
-                }
-
+                throw new UserFacingException(
+                    "No note template was selected",
+                    "Pass --default, --full, or --template <path> to choose which note template to use.");
             }
+
+            return slicer.Create(template.getNoteTemplate());
         }
-
-        private static IGcodeParser BuildPrusaParser(ArgumentParser arguments)
-        {
-            INoteTemplate template = arguments.UseDefaultNoteTemplate
-                            ? new PrusaDefaultNoteTemplate()
-                            : arguments.UseFullNoteTemplate
-                            ? new PrusaFullNoteTemplate()
-                            : new NoteTemplateFromFile(arguments.NoteTemplatePath);
-
-            return new PrusaParser(template.getNoteTemplate());
-        }
-
-        private static IGcodeParser BuildOrcaParser(ArgumentParser arguments)
-        {
-            INoteTemplate template = arguments.UseDefaultNoteTemplate
-                            ? new OrcaDefaultNoteTemplate()
-                            : arguments.UseFullNoteTemplate
-                            ? new OrcaFullNoteTemplate()
-                            : new NoteTemplateFromFile(arguments.NoteTemplatePath);
-
-            return new OrcaParser(template.getNoteTemplate());
-        }
-
-        private static IGcodeParser BuildFLSunParser(ArgumentParser arguments)
-        {
-            INoteTemplate template = arguments.UseDefaultNoteTemplate
-                            ? new FLSunDefaultNoteTemplate()
-                            : arguments.UseFullNoteTemplate
-                            ? new FLSunFullNoteTemplate()
-                            : new NoteTemplateFromFile(arguments.NoteTemplatePath);
-            return new FLSunParser(template.getNoteTemplate());
-        }
-
-        private static IGcodeParser BuildBambuStudioParser(ArgumentParser arguments)
-        {
-            INoteTemplate template = arguments.UseDefaultNoteTemplate
-                            ? new BambuStudioDefaultNoteTemplate()
-                            : arguments.UseFullNoteTemplate
-                            ? new BambuStudioFullNoteTemplate()
-                            : new NoteTemplateFromFile(arguments.NoteTemplatePath);
-            return new BambuStudioParser(template.getNoteTemplate());
-        }
-
-        private static IGcodeParser BuildAnycubicSlicerNextParser(ArgumentParser arguments)
-        {
-            INoteTemplate template = arguments.UseDefaultNoteTemplate
-                            ? new AnycubicSlicerNextDefaultNoteTemplate()
-                            : arguments.UseFullNoteTemplate
-                            ? new AnycubicSlicerNextFullNoteTemplate()
-                            : new NoteTemplateFromFile(arguments.NoteTemplatePath);
-            return new AnycubicSlicerNextParser(template.getNoteTemplate());
-        }
-
 
         private static void SendTemplateMetrics(ArgumentParser arguments, TelemetryService telemetry)
         {

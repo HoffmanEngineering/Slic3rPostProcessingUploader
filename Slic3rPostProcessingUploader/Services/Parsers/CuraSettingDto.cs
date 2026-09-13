@@ -1,36 +1,37 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace Slic3rPostProcessingUploader.Services.Parsers
 {
     internal class CuraSettingDto
     {
-        public string Slicer { get; set; }
-        public string CuraVersion { get; set; }
-        public string PluginVersion { get; set; }
+        public required string Slicer { get; set; }
+        public required string CuraVersion { get; set; }
 
-        public CuraSettings settings { get; set; }
+        /// <summary>
+        /// Set by <see cref="PrintMetadata.Apply"/> after parsing; null until then.
+        /// </summary>
+        public string? PluginVersion { get; set; }
 
-        // Create a function called ToJSON that will return a JSON string representation of the object
+        public required CuraSettings settings { get; set; }
+
+        /// <summary>
+        /// The JSON body posted to the API. Property names are camel-cased by <see cref="JsonContext"/>.
+        /// </summary>
         public string ToJSON()
         {
-            // Serialize into json
-            var serializerContext = JsonContext.Default;
-
             return JsonSerializer.Serialize(this, JsonContext.Default.CuraSettingDto);
         }
     }
 
     public class CuraSettings
     {
-        public string note { get; set; }
-        public string print_name { get; set; }
-        public string time_stamp { get; set; }
+        public string note { get; set; } = "";
+
+        /// <summary>
+        /// Set by <see cref="PrintMetadata.Apply"/> after parsing; null until then.
+        /// </summary>
+        public string? print_name { get; set; }
         public int estimated_print_time_seconds { get; set; }
         public int? material_used_mg { get; set; }
 
@@ -41,8 +42,6 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         public string? file_name { get; set; }
 
         public List<PrintFilamentSummaryDto>? filamentUsage { get; set; }
-
-
     }
 
     [JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Serialization, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, WriteIndented = true)]
@@ -51,4 +50,3 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
     {
     }
 }
-    

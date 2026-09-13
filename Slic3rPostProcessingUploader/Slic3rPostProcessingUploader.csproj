@@ -1,22 +1,40 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
 	<OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <WarningsAsErrors>nullable</WarningsAsErrors>
     <InvariantGlobalization>true</InvariantGlobalization>
-	<Version>1.1.2</Version>
+	<!-- Release builds pass -p:Version=<tag without the v> (see .github/workflows/release.yml), which overrides this
+	     as a global property and also drives AssemblyVersion, FileVersion and InformationalVersion. The placeholder
+	     makes any binary that was not built from a tag say so in its own version output. -->
+	<Version>0.0.0-dev</Version>
     <PublishSingleFile>true</PublishSingleFile>
     <PublishAot>true</PublishAot>
 	<RuntimeIdentifiers>win-x64;osx-x64;osx-arm64;linux-x64</RuntimeIdentifiers>
-	<FileVersion>1.1.2</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Monitor.OpenTelemetry.Exporter" Version="1.6.0" />
-    <PackageReference Include="OpenTelemetry" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
+    <PackageReference Include="Azure.Monitor.OpenTelemetry.Exporter" Version="1.9.0" />
+    <PackageReference Include="OpenTelemetry" Version="1.18.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.18.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Built-in note templates, loaded by EmbeddedNoteTemplate. LogicalName is spelled out so the resource name is
+         the same on every OS (%(RecursiveDir) would use a backslash on Windows). -->
+    <EmbeddedResource Include="Templates/OrcaSlicer/default.txt" LogicalName="Templates/OrcaSlicer/default.txt" />
+    <EmbeddedResource Include="Templates/OrcaSlicer/full.txt" LogicalName="Templates/OrcaSlicer/full.txt" />
+    <EmbeddedResource Include="Templates/PrusaSlicer/default.txt" LogicalName="Templates/PrusaSlicer/default.txt" />
+    <EmbeddedResource Include="Templates/PrusaSlicer/full.txt" LogicalName="Templates/PrusaSlicer/full.txt" />
+    <EmbeddedResource Include="Templates/BambuStudio/default.txt" LogicalName="Templates/BambuStudio/default.txt" />
+    <EmbeddedResource Include="Templates/BambuStudio/full.txt" LogicalName="Templates/BambuStudio/full.txt" />
+    <EmbeddedResource Include="Templates/FLSunSlicer/default.txt" LogicalName="Templates/FLSunSlicer/default.txt" />
+    <EmbeddedResource Include="Templates/FLSunSlicer/full.txt" LogicalName="Templates/FLSunSlicer/full.txt" />
+    <EmbeddedResource Include="Templates/AnycubicSlicerNext/default.txt" LogicalName="Templates/AnycubicSlicerNext/default.txt" />
+    <EmbeddedResource Include="Templates/AnycubicSlicerNext/full.txt" LogicalName="Templates/AnycubicSlicerNext/full.txt" />
   </ItemGroup>
 
 </Project>

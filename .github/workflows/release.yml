@@ -1,0 +1,106 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+# Read-only by default, so the third-party actions in the build job never receive a
+# token that can write to the repository. Only publish-release widens it.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.rid }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: true
+      matrix:
+        # Every RID the csproj declares. Native AOT needs the target OS's toolchain, so
+        # each OS builds its own binaries; macOS builds both architectures because the
+        # AOT toolchain cross-compiles between x64 and arm64 on the same host.
+        include:
+          - { os: ubuntu-latest, rid: linux-x64, binary: Slic3rPostProcessingUploader }
+          - { os: windows-latest, rid: win-x64, binary: Slic3rPostProcessingUploader.exe }
+          - { os: macos-latest, rid: osx-arm64, binary: Slic3rPostProcessingUploader }
+          - { os: macos-latest, rid: osx-x64, binary: Slic3rPostProcessingUploader }
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+      - name: Setup .NET SDK
+        id: setup-dotnet
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - name: Enforce SDK Version
+        run: dotnet new globaljson --sdk-version ${{ steps.setup-dotnet.outputs.dotnet-version }} --force
+      - name: Restore
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+      - name: Test
+        run: dotnet test --no-restore --verbosity normal
+
+      # The version comes from the tag alone: v1.2.0 -> -p:Version=1.2.0, which the SDK
+      # turns into AssemblyVersion, FileVersion and InformationalVersion, so the binary's
+      # --version output matches the release it was downloaded from without a csproj bump.
+      - name: Publish ${{ matrix.rid }}
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          dotnet publish Slic3rPostProcessingUploader/Slic3rPostProcessingUploader.csproj \
+            --configuration Release --runtime "${{ matrix.rid }}" -p:Version="${TAG#v}"
+
+      # One flat directory per RID holding just the executable, renamed so the four
+      # binaries can sit side by side on the Release page.
+      - name: Stage binary
+        shell: bash
+        run: |
+          mkdir -p dist
+          src="Slic3rPostProcessingUploader/bin/Release/net10.0/${{ matrix.rid }}/publish/${{ matrix.binary }}"
+          ext="${{ matrix.binary }}"; ext="${ext#Slic3rPostProcessingUploader}"
+          cp "$src" "dist/Slic3rPostProcessingUploader-${{ matrix.rid }}${ext}"
+          ls -l dist
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.rid }}
+          path: dist/
+          if-no-files-found: error
+
+  # Separate job so `contents: write` is scoped to publishing alone, and it only runs
+  # once every platform has built and passed its tests -- the Releases feed should never
+  # carry a partial set of binaries.
+  #
+  # --generate-notes builds the body from the squash-merged PR titles since the previous
+  # tag, grouped by label per .github/release.yml. There is no hand-maintained changelog
+  # to keep in step with it.
+  publish-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+      # No checkout: `gh release create` acts on the API, and GH_REPO tells it which
+      # repository without cloning the tree just to cut a release.
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          ls -l dist
+          gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag dist/*

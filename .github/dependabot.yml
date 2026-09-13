@@ -1,0 +1,51 @@
+version: 2
+
+# Nothing watched versions in this repository before this file existed. The API repo has
+# had a nuget config for a while and the UI repo gained npm/actions coverage in
+# 3d-print-log-ui#107; this is the equivalent here.
+#
+# The actions entry is the one that matters most. Every action below was pinned once and
+# never revisited -- checkout and setup-dotnet are still on v3 while the other repos are
+# on v6/v7 -- and a stale action is the kind of drift nobody notices until it breaks or
+# an advisory lands against it.
+#
+# NOT covered here, and easy to assume otherwise:
+#   - The .NET SDK itself. CI installs it from the `dotnet.version` matrix entry in
+#     ci.yml, not from a manifest, so a TFM bump stays a manual edit of that workflow.
+#   - Transitive-only advisories. Dependabot bumps what the project files declare; a
+#     vulnerable transitive package is only fixed when its parent publishes.
+
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+    groups:
+      # xUnit, the runner and coverlet are coupled through the test platform, so a partial
+      # bump produces a combination that was never tested together upstream.
+      test-tooling:
+        patterns:
+          - "xunit"
+          - "xunit.*"
+          - "coverlet.*"
+          - "Microsoft.NET.Test.Sdk"
+          - "Verify*"
+
+      # Everything else, split by risk: patch and minor arrive as one reviewable PR, while
+      # majors stay on their own so a breaking change is never bundled with routine work.
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns:
+          - "*"
