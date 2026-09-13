@@ -67,9 +67,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer
 
                 string flags = PromptForFlags();
 
-                if (status.IsInstalled)
-                    installer.Uninstall(_executablePath, dryRun);
-
+                // Install refreshes the path and flags of any override it already owns, so a re-run is enough to change flags.
                 var result = installer.Install(_executablePath, flags, dryRun);
 
                 if (dryRun)
@@ -79,6 +77,12 @@ namespace Slic3rPostProcessingUploader.Services.Installer
 
                 if (result.WithOtherScripts > 0)
                     Console.WriteLine($"  Note: {result.WithOtherScripts} profile(s) had other post-process scripts — ours was appended alongside them.");
+                if (result.CoveredByHandMade > 0)
+                    Console.WriteLine($"  Note: {result.CoveredByHandMade} profile(s) already run the uploader through a profile you set up by hand — left as-is.");
+                if (result.HandMadeRefreshed > 0)
+                    Console.WriteLine($"  Note: {result.HandMadeRefreshed} hand-made profile(s) pointed at an old copy of the uploader — updated the path, kept their flags.");
+                if (result.Unreadable > 0)
+                    Console.WriteLine($"  Warning: {result.Unreadable} profile file(s) could not be read and were skipped.");
 
                 anyInstalled = true;
                 Console.WriteLine();
@@ -121,6 +125,11 @@ namespace Slic3rPostProcessingUploader.Services.Installer
                     Console.WriteLine($"  [DRY RUN] Would remove from {result.RemovedFiles + result.ModifiedFiles} profile(s).");
                 else
                     Console.WriteLine($"  Removed from {result.RemovedFiles + result.ModifiedFiles} profile(s). {result.ModifiedFiles} profile(s) had other settings — kept those files.");
+
+                if (result.HandMadeLeft > 0)
+                    Console.WriteLine($"  Note: {result.HandMadeLeft} profile(s) you set up by hand still reference the uploader — remove those in the slicer if you no longer want them.");
+                if (result.Unreadable > 0)
+                    Console.WriteLine($"  Warning: {result.Unreadable} profile file(s) could not be read and were skipped.");
 
                 anyUninstalled = true;
                 Console.WriteLine();

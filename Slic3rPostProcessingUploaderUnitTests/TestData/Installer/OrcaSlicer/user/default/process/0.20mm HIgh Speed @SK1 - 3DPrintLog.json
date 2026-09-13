@@ -1,0 +1,17 @@
+{
+  "from": "User",
+  "gap_infill_speed": "300",
+  "inherits": "0.20mm Standard @SK1",
+  "inner_wall_speed": "500",
+  "internal_solid_infill_speed": "350",
+  "is_custom_defined": "0",
+  "name": "0.20mm HIgh Speed @SK1 - 3DPrintLog",
+  "outer_wall_speed": "250",
+  "post_process": ["C:\\Slic3rUploader\\Slic3rPostProcessingUploader.exe --full"],
+  "print_settings_id": "0.20mm HIgh Speed @SK1 - 3DPrintLog",
+  "sparse_infill_pattern": "zig-zag",
+  "sparse_infill_speed": "500",
+  "top_surface_speed": "250",
+  "version": "2.2.0.4",
+  "wall_generator": "arachne"
+}

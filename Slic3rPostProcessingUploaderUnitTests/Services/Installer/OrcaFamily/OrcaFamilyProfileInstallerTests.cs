@@ -87,6 +87,122 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
             }
         }
 
+        private static void WriteVendorIndex(string root, string vendor, params string[] subPaths)
+        {
+            var list = string.Join(",", subPaths.Select(p => $$"""{"name": "{{Path.GetFileNameWithoutExtension(p)}}", "sub_path": "{{p}}"}"""));
+            File.WriteAllText(
+                Path.Combine(root, "system", $"{vendor}.json"),
+                $$"""{"name": "{{vendor}}", "version": "1.0.0", "process_list": [{{list}}], "filament_list": [], "machine_list": []}""");
+        }
+
+        [TestMethod]
+        public void FindSelectableSystemProfiles_WhenVendorIndexExists_IgnoresProcessFilesNotListedInIt()
+        {
+            // Real vendor folders accumulate leftovers ("… copy.json", "…_old.json") that carry the same
+            // "name" as the live profile but are absent from the vendor index, so the slicer never shows them.
+            var root = BuildTempConfigDir(
+                ("0.20mm Standard @Printer", true),
+                ("0.20mm Standard @Printer copy", true),
+                ("0.10mm Fine @Printer", true)
+            );
+            // The "copy" file claims the live profile's name.
+            File.WriteAllText(
+                Path.Combine(root, "system", "Vendor", "process", "0.20mm Standard @Printer copy.json"),
+                """{"name": "0.20mm Standard @Printer", "instantiation": "true", "from": "system", "version": "1.0.0"}""");
+            WriteVendorIndex(root, "Vendor", "process/0.20mm Standard @Printer.json", "process/0.10mm Fine @Printer.json");
+
+            try
+            {
+                var installer = new TestOrcaInstaller(configRootOverride: root);
+                var profiles = installer.FindSelectableSystemProfilesForTesting();
+
+                CollectionAssert.AreEquivalent(
+                    new[] { "0.20mm Standard @Printer", "0.10mm Fine @Printer" },
+                    profiles.Select(p => p.Name).ToArray());
+                StringAssert.EndsWith(profiles.Single(p => p.Name == "0.20mm Standard @Printer").FilePath, "0.20mm Standard @Printer.json");
+            }
+            finally
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+
+        [TestMethod]
+        public void FindSelectableSystemProfiles_WhenVendorIndexListsMissingFile_SkipsIt()
+        {
+            var root = BuildTempConfigDir(("0.20mm Standard @Printer", true));
+            WriteVendorIndex(root, "Vendor", "process/0.20mm Standard @Printer.json", "process/0.30mm Removed @Printer.json");
+
+            try
+            {
+                var profiles = new TestOrcaInstaller(configRootOverride: root).FindSelectableSystemProfilesForTesting();
+                CollectionAssert.AreEqual(new[] { "0.20mm Standard @Printer" }, profiles.Select(p => p.Name).ToArray());
+            }
+            finally
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+
+        [TestMethod]
+        public void FindSelectableSystemProfiles_WithoutVendorIndex_DeduplicatesByName()
+        {
+            var root = BuildTempConfigDir(("0.20mm Standard @Printer", true));
+            File.WriteAllText(
+                Path.Combine(root, "system", "Vendor", "process", "0.20mm Standard @Printer_old.json"),
+                """{"name": "0.20mm Standard @Printer", "instantiation": "true", "from": "system", "version": "1.0.0"}""");
+
+            try
+            {
+                var profiles = new TestOrcaInstaller(configRootOverride: root).FindSelectableSystemProfilesForTesting();
+                Assert.AreEqual(1, profiles.Count);
+            }
+            finally
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+
+        [TestMethod]
+        public void FindSelectableSystemProfiles_ToleratesDuplicateJsonKeys()
+        {
+            // Anycubic ships "0.20mm High Quality @Anycubic Kobra S1 0.4 nozzle.json" with "is_custom_defined" twice;
+            // the slicer loads it, so the installer must too.
+            var root = BuildTempConfigDir(("0.10mm Fine @Printer", true));
+            File.WriteAllText(
+                Path.Combine(root, "system", "Vendor", "process", "0.20mm Standard @Printer.json"),
+                """{"name": "0.20mm Standard @Printer", "is_custom_defined": "0", "instantiation": "true", "is_custom_defined": "0", "version": "1.0.0"}""");
+
+            try
+            {
+                var profiles = new TestOrcaInstaller(configRootOverride: root).FindSelectableSystemProfilesForTesting();
+                CollectionAssert.AreEquivalent(
+                    new[] { "0.10mm Fine @Printer", "0.20mm Standard @Printer" },
+                    profiles.Select(p => p.Name).ToArray());
+            }
+            finally
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+
+        [TestMethod]
+        public void FindSelectableSystemProfiles_SkipsMalformedJson()
+        {
+            var root = BuildTempConfigDir(("0.10mm Fine @Printer", true));
+            File.WriteAllText(Path.Combine(root, "system", "Vendor", "process", "broken.json"), "{ not json");
+
+            try
+            {
+                var profiles = new TestOrcaInstaller(configRootOverride: root).FindSelectableSystemProfilesForTesting();
+                CollectionAssert.AreEqual(new[] { "0.10mm Fine @Printer" }, profiles.Select(p => p.Name).ToArray());
+            }
+            finally
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+
         [TestMethod]
         public void FindUserAccountDirs_ReturnsAllSubdirectories()
         {
@@ -109,8 +225,10 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
         private static string BuildTempConfigDirWithUserOverride(
             string profileName,
             string? existingPostProcess = null,
-            Dictionary<string, string>? extraFields = null)
+            Dictionary<string, string>? extraFields = null,
+            bool ownedBySuffix = false)
         {
+            string overrideName = ownedBySuffix ? profileName + " - 3DPrintLog" : profileName;
             var root = Path.Combine(Path.GetTempPath(), "TestSlicer_" + Guid.NewGuid());
             var systemProcessDir = Path.Combine(root, "system", "Vendor", "process");
             var userProcessDir = Path.Combine(root, "user", "default", "process");
@@ -127,8 +245,8 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
                 {
                     ["from"] = "User",
                     ["inherits"] = profileName,
-                    ["name"] = profileName,
-                    ["print_settings_id"] = profileName,
+                    ["name"] = overrideName,
+                    ["print_settings_id"] = overrideName,
                     ["version"] = "2.0.0"
                 };
                 if (existingPostProcess != null)
@@ -142,7 +260,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
                         node[kv.Key] = kv.Value;
                 }
                 File.WriteAllText(
-                    Path.Combine(userProcessDir, $"{profileName}.json"),
+                    Path.Combine(userProcessDir, $"{overrideName}.json"),
                     node.ToJsonString());
             }
 
@@ -328,9 +446,9 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
         [TestMethod]
         public void Uninstall_DeletesFile_WhenOverrideHasNoOtherCustomizations()
         {
-            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer", ownedBySuffix: true,
                 existingPostProcess: "\"C:\\Slic3rPostProcessingUploader.exe\" --full");
-            var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+            var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
 
             try
             {
@@ -347,10 +465,10 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
         [TestMethod]
         public void Uninstall_KeepsFile_WhenOverrideHasOtherCustomizations()
         {
-            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer", ownedBySuffix: true,
                 existingPostProcess: "\"C:\\Slic3rPostProcessingUploader.exe\" --full",
                 extraFields: new Dictionary<string, string> { ["wall_loops"] = "3" });
-            var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+            var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
 
             try
             {
@@ -371,11 +489,11 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
         [TestMethod]
         public void Uninstall_LeavesOtherScripts_WhenProfileHasMultiple()
         {
-            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer", ownedBySuffix: true,
                 existingPostProcess: "C:\\other-script.exe");
 
             // Manually add our script alongside the other
-            var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+            var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
             var node = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(overridePath))!;
             node["post_process"]!.AsArray().Add(System.Text.Json.Nodes.JsonValue.Create("\"C:\\Slic3rPostProcessingUploader.exe\" --full"));
             File.WriteAllText(overridePath, node.ToJsonString());
@@ -396,9 +514,9 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
         [TestMethod]
         public void Uninstall_DryRun_WritesNoChanges()
         {
-            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer", ownedBySuffix: true,
                 existingPostProcess: "\"C:\\Slic3rPostProcessingUploader.exe\" --full");
-            var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+            var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
             var originalContent = File.ReadAllText(overridePath);
 
             try
@@ -409,6 +527,180 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
                 Assert.AreEqual(originalContent, File.ReadAllText(overridePath));
                 // Counters still reflect what would have happened
                 Assert.AreEqual(1, result.RemovedFiles);
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+        private static System.Text.Json.Nodes.JsonArray ReadPostProcess(string path) =>
+            System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!["post_process"]!.AsArray();
+
+        // ---- A: a hand-made profile that already runs the uploader covers its parent system profile ----
+
+        [TestMethod]
+        public void Install_SkipsSystemProfile_WhenHandMadeChildAlreadyRunsUploader()
+        {
+            // The hand-made file is "0.20mm Standard @Printer.json" (no suffix) and inherits the system profile.
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+                existingPostProcess: "\"C:\\uploader\\Slic3rPostProcessingUploader.exe\" --full");
+            try
+            {
+                var result = new TestOrcaInstaller(configRootOverride: root)
+                    .Install("C:\\uploader\\Slic3rPostProcessingUploader.exe", "--default", dryRun: false);
+
+                Assert.AreEqual(0, result.Created);
+                Assert.AreEqual(1, result.CoveredByHandMade);
+                Assert.IsFalse(File.Exists(Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json")));
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void Install_IgnoresHandMadeChild_WhenItDoesNotRunUploader()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+                existingPostProcess: "C:\\other-script.exe");
+            try
+            {
+                var result = new TestOrcaInstaller(configRootOverride: root)
+                    .Install("C:\\uploader\\Slic3rPostProcessingUploader.exe", "--full", dryRun: false);
+
+                Assert.AreEqual(1, result.Created);
+                Assert.AreEqual(0, result.CoveredByHandMade);
+                Assert.IsTrue(File.Exists(Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json")));
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        // ---- C: stale uploader paths are refreshed ----
+
+        [TestMethod]
+        public void Install_ReplacesEntry_WhenOwnedOverrideHasStalePathOrFlags()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer", ownedBySuffix: true,
+                existingPostProcess: "\"C:\\old\\Slic3rPostProcessingUploader.exe\" --default");
+            var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
+            try
+            {
+                var result = new TestOrcaInstaller(configRootOverride: root)
+                    .Install("C:\\new\\Slic3rPostProcessingUploader.exe", "--full", dryRun: false);
+
+                Assert.AreEqual(1, result.Updated);
+                Assert.AreEqual(0, result.Skipped);
+                CollectionAssert.AreEqual(
+                    new[] { "C:\\new\\Slic3rPostProcessingUploader.exe --full" },
+                    ReadPostProcess(overridePath).Select(e => e!.GetValue<string>()).ToArray());
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void Install_RefreshesPathButKeepsFlags_WhenHandMadeProfilePointsAtOldExe()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+                existingPostProcess: "\"C:\\old\\Slic3rPostProcessingUploader.exe\" --default --opt-out-telemetry",
+                extraFields: new Dictionary<string, string> { ["wall_loops"] = "3" });
+            var handMadePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+            try
+            {
+                var result = new TestOrcaInstaller(configRootOverride: root)
+                    .Install("C:\\new dir\\Slic3rPostProcessingUploader.exe", "--full", dryRun: false);
+
+                Assert.AreEqual(1, result.CoveredByHandMade);
+                Assert.AreEqual(1, result.HandMadeRefreshed);
+                var node = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(handMadePath))!;
+                CollectionAssert.AreEqual(
+                    new[] { "\"C:\\new dir\\Slic3rPostProcessingUploader.exe\" --default --opt-out-telemetry" },
+                    node["post_process"]!.AsArray().Select(e => e!.GetValue<string>()).ToArray());
+                Assert.AreEqual("3", node["wall_loops"]!.GetValue<string>(), "other settings must survive");
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void Install_LeavesHandMadeProfileUntouched_WhenItsPathIsAlreadyCurrent()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+                existingPostProcess: "\"C:\\uploader\\Slic3rPostProcessingUploader.exe\" --default");
+            var handMadePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+            var original = File.ReadAllText(handMadePath);
+            try
+            {
+                var result = new TestOrcaInstaller(configRootOverride: root)
+                    .Install("C:\\uploader\\Slic3rPostProcessingUploader.exe", "--full", dryRun: false);
+
+                Assert.AreEqual(1, result.CoveredByHandMade);
+                Assert.AreEqual(0, result.HandMadeRefreshed);
+                Assert.AreEqual(original, File.ReadAllText(handMadePath));
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void Install_DryRun_ReportsHandMadeRefreshWithoutWriting()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+                existingPostProcess: "\"C:\\old\\Slic3rPostProcessingUploader.exe\" --default");
+            var handMadePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+            var original = File.ReadAllText(handMadePath);
+            try
+            {
+                var result = new TestOrcaInstaller(configRootOverride: root)
+                    .Install("C:\\new\\Slic3rPostProcessingUploader.exe", "--full", dryRun: true);
+
+                Assert.AreEqual(1, result.HandMadeRefreshed);
+                Assert.AreEqual(original, File.ReadAllText(handMadePath));
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void Install_SkipsUnreadableUserOverride_AndStillInstallsTheRest()
+        {
+            var root = BuildTempConfigDir(("0.20mm Standard @Printer", true), ("0.10mm Fine @Printer", true));
+            File.WriteAllText(Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json"), "{ not json");
+            try
+            {
+                var result = new TestOrcaInstaller(configRootOverride: root)
+                    .Install("C:\\uploader\\Slic3rPostProcessingUploader.exe", "--full", dryRun: false);
+
+                Assert.AreEqual(1, result.Created);
+                Assert.AreEqual(1, result.Unreadable);
+                Assert.IsTrue(File.Exists(Path.Combine(root, "user", "default", "process", "0.10mm Fine @Printer - 3DPrintLog.json")));
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        // ---- B: uninstall only touches installer-owned overrides ----
+
+        [TestMethod]
+        public void Uninstall_LeavesHandMadeProfileAlone_ButReportsIt()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer",
+                existingPostProcess: "\"C:\\Slic3rPostProcessingUploader.exe\" --full");
+            var handMadePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer.json");
+            var original = File.ReadAllText(handMadePath);
+            try
+            {
+                var result = new TestOrcaInstaller(configRootOverride: root).Uninstall("C:\\Slic3rPostProcessingUploader.exe", dryRun: false);
+
+                Assert.AreEqual(0, result.RemovedFiles + result.ModifiedFiles);
+                Assert.AreEqual(1, result.HandMadeLeft);
+                Assert.AreEqual(original, File.ReadAllText(handMadePath));
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void Uninstall_RemovesOrphanedOwnedOverride_WhoseSystemProfileIsGone()
+        {
+            var root = BuildTempConfigDir(("0.10mm Fine @Printer", true));
+            var orphanPath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Gone - 3DPrintLog.json");
+            File.WriteAllText(orphanPath, """{"from": "User", "inherits": "0.20mm Standard @Gone", "name": "0.20mm Standard @Gone - 3DPrintLog", "post_process": ["C:\\Slic3rPostProcessingUploader.exe"], "print_settings_id": "0.20mm Standard @Gone - 3DPrintLog", "version": "2.0.0"}""");
+            try
+            {
+                var result = new TestOrcaInstaller(configRootOverride: root).Uninstall("C:\\Slic3rPostProcessingUploader.exe", dryRun: false);
+
+                Assert.AreEqual(1, result.RemovedFiles);
+                Assert.IsFalse(File.Exists(orphanPath));
             }
             finally { Directory.Delete(root, recursive: true); }
         }

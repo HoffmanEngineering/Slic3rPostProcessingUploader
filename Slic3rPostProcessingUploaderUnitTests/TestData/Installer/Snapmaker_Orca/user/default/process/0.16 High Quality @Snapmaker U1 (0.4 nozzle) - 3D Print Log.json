@@ -1,0 +1,17 @@
+{
+    "enable_support": "1",
+    "exclude_object": "1",
+    "from": "User",
+    "inherits": "0.16 High Quality @Snapmaker U1 (0.4 nozzle)",
+    "is_custom_defined": "0",
+    "name": "0.16 High Quality @Snapmaker U1 (0.4 nozzle) - 3D Print Log",
+    "post_process": [
+        "\"D:\\Development\\3d-print-log\\Slic3rPostProcessingUploader\\Slic3rPostProcessingUploader\\bin\\Debug\\net10.0\\Slic3rPostProcessingUploader.exe\" --full"
+    ],
+    "prime_tower_brim_width": "10",
+    "prime_volume": "20",
+    "print_settings_id": "0.16 High Quality @Snapmaker U1 (0.4 nozzle) - 3D Print Log",
+    "sparse_infill_density": "8%",
+    "version": "2.2.40.2",
+    "wall_loops": "3"
+}

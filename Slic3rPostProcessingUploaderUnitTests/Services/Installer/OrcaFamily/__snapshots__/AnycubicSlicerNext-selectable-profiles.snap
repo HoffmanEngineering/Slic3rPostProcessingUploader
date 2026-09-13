@@ -1,0 +1,272 @@
+﻿[
+  {
+    "Name": "0.06mm Standard @Anycubic Kobra S1 0.25 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.06mm Standard @Anycubic Kobra S1 0.25 nozzle.json"
+  },
+  {
+    "Name": "0.08mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
+    "Version": "1.3.2507.10",
+    "File": "system/Anycubic/process/0.08mm Standard @Anycubic Kobra 3 Max 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.08mm Standard @Anycubic Kobra 3 V2 0.4 nozzle",
+    "Version": "1.3.2505.16",
+    "File": "system/Anycubic/process/0.08mm Standard @Anycubic Kobra 3 V2 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.08mm Standard @Anycubic Kobra S1 0.25 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.08mm Standard @Anycubic Kobra S1 0.25 nozzle.json"
+  },
+  {
+    "Name": "0.08mm Standard @Anycubic Kobra S1 0.4 nozzle",
+    "Version": "1.3.2504.18",
+    "File": "system/Anycubic/process/0.08mm Standard @Anycubic Kobra S1 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.10mm Standard @Anycubic Kobra 3 V2 0.2 nozzle",
+    "Version": "1.3.2504.11",
+    "File": "system/Anycubic/process/0.10mm Standard @Anycubic Kobra 3 V2 0.2 nozzle.json"
+  },
+  {
+    "Name": "0.10mm Standard @Anycubic Kobra S1 0.25 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.10mm Standard @Anycubic Kobra S1 0.25 nozzle.json"
+  },
+  {
+    "Name": "0.12mm High Quality @Anycubic Kobra 3 V2 0.4 nozzle",
+    "Version": "1.3.2505.16",
+    "File": "system/Anycubic/process/0.12mm High Quality @Anycubic Kobra 3 V2 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.12mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
+    "Version": "1.3.2507.10",
+    "File": "system/Anycubic/process/0.12mm Standard @Anycubic Kobra 3 Max 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.12mm Standard @Anycubic Kobra 3 V2 0.4 nozzle",
+    "Version": "1.3.2505.16",
+    "File": "system/Anycubic/process/0.12mm Standard @Anycubic Kobra 3 V2 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.12mm Standard @Anycubic Kobra S1 0.25 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.12mm Standard @Anycubic Kobra S1 0.25 nozzle.json"
+  },
+  {
+    "Name": "0.12mm Standard @Anycubic Kobra S1 0.4 nozzle",
+    "Version": "1.3.2504.18",
+    "File": "system/Anycubic/process/0.12mm Standard @Anycubic Kobra S1 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.14mm Standard @Anycubic Kobra S1 0.25 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.14mm Standard @Anycubic Kobra S1 0.25 nozzle.json"
+  },
+  {
+    "Name": "0.16mm High Quality @Anycubic Kobra 3 V2 0.4 nozzle",
+    "Version": "1.3.2505.16",
+    "File": "system/Anycubic/process/0.16mm High Quality @Anycubic Kobra 3 V2 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.16mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
+    "Version": "1.3.2507.10",
+    "File": "system/Anycubic/process/0.16mm Standard @Anycubic Kobra 3 Max 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.16mm Standard @Anycubic Kobra 3 V2 0.4 nozzle",
+    "Version": "1.3.2505.16",
+    "File": "system/Anycubic/process/0.16mm Standard @Anycubic Kobra 3 V2 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.16mm Standard @Anycubic Kobra S1 0.4 nozzle",
+    "Version": "1.3.2504.18",
+    "File": "system/Anycubic/process/0.16mm Standard @Anycubic Kobra S1 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.18mm Standard @Anycubic Kobra 3 Max 0.6 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.18mm Standard @Anycubic Kobra 3 Max 0.6 nozzle.json"
+  },
+  {
+    "Name": "0.18mm Standard @Anycubic Kobra S1 0.6 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.18mm Standard @Anycubic Kobra S1 0.6 nozzle.json"
+  },
+  {
+    "Name": "0.20mm High Quality @Anycubic Kobra 3 V2 0.4 nozzle",
+    "Version": "1.3.2505.16",
+    "File": "system/Anycubic/process/0.20mm High Quality @Anycubic Kobra 3 V2 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.20mm High Quality @Anycubic Kobra S1 0.4 nozzle",
+    "Version": "1.3.2503.07",
+    "File": "system/Anycubic/process/0.20mm High Quality @Anycubic Kobra S1 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.20mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
+    "Version": "1.3.2507.10",
+    "File": "system/Anycubic/process/0.20mm Standard @Anycubic Kobra 3 Max 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.20mm Standard @Anycubic Kobra 3 Max 0.8 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.20mm Standard @Anycubic Kobra 3 Max 0.8 nozzle.json"
+  },
+  {
+    "Name": "0.20mm Standard @Anycubic Kobra 3 V2 0.4 nozzle",
+    "Version": "1.3.2505.16",
+    "File": "system/Anycubic/process/0.20mm Standard @Anycubic Kobra 3 V2 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.20mm Standard @Anycubic Kobra S1 0.4 nozzle",
+    "Version": "1.3.2504.18",
+    "File": "system/Anycubic/process/0.20mm Standard @Anycubic Kobra S1 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.24mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
+    "Version": "1.3.2507.10",
+    "File": "system/Anycubic/process/0.24mm Standard @Anycubic Kobra 3 Max 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.24mm Standard @Anycubic Kobra 3 Max 0.6 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.24mm Standard @Anycubic Kobra 3 Max 0.6 nozzle.json"
+  },
+  {
+    "Name": "0.24mm Standard @Anycubic Kobra 3 Max 0.8 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.24mm Standard @Anycubic Kobra 3 Max 0.8 nozzle.json"
+  },
+  {
+    "Name": "0.24mm Standard @Anycubic Kobra 3 V2 0.4 nozzle",
+    "Version": "1.3.2505.16",
+    "File": "system/Anycubic/process/0.24mm Standard @Anycubic Kobra 3 V2 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.24mm Standard @Anycubic Kobra 3 V2 0.6 nozzle",
+    "Version": "1.3.2505.23",
+    "File": "system/Anycubic/process/0.24mm Standard @Anycubic Kobra 3 V2 0.6 nozzle.json"
+  },
+  {
+    "Name": "0.24mm Standard @Anycubic Kobra S1 0.4 nozzle",
+    "Version": "1.3.2504.18",
+    "File": "system/Anycubic/process/0.24mm Standard @Anycubic Kobra S1 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.24mm Standard @Anycubic Kobra S1 0.6 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.24mm Standard @Anycubic Kobra S1 0.6 nozzle.json"
+  },
+  {
+    "Name": "0.24mm Standard @Anycubic Kobra S1 0.8 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.24mm Standard @Anycubic Kobra S1 0.8 nozzle.json"
+  },
+  {
+    "Name": "0.28mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
+    "Version": "1.3.2507.10",
+    "File": "system/Anycubic/process/0.28mm Standard @Anycubic Kobra 3 Max 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.28mm Standard @Anycubic Kobra 3 V2 0.4 nozzle",
+    "Version": "1.3.2505.16",
+    "File": "system/Anycubic/process/0.28mm Standard @Anycubic Kobra 3 V2 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.28mm Standard @Anycubic Kobra S1 0.4 nozzle",
+    "Version": "1.3.2504.18",
+    "File": "system/Anycubic/process/0.28mm Standard @Anycubic Kobra S1 0.4 nozzle.json"
+  },
+  {
+    "Name": "0.30mm Standard @Anycubic Kobra 3 Max 0.6 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.30mm Standard @Anycubic Kobra 3 Max 0.6 nozzle.json"
+  },
+  {
+    "Name": "0.30mm Standard @Anycubic Kobra 3 V2 0.6 nozzle",
+    "Version": "1.3.2506.13",
+    "File": "system/Anycubic/process/0.30mm Standard @Anycubic Kobra 3 V2 0.6 nozzle.json"
+  },
+  {
+    "Name": "0.30mm Standard @Anycubic Kobra S1 0.6 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.30mm Standard @Anycubic Kobra S1 0.6 nozzle.json"
+  },
+  {
+    "Name": "0.32mm Standard @Anycubic Kobra 3 Max 0.8 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.32mm Standard @Anycubic Kobra 3 Max 0.8 nozzle.json"
+  },
+  {
+    "Name": "0.32mm Standard @Anycubic Kobra 3 V2 0.8 nozzle",
+    "Version": "1.3.2506.06",
+    "File": "system/Anycubic/process/0.32mm Standard @Anycubic Kobra 3 V2 0.8 nozzle.json"
+  },
+  {
+    "Name": "0.32mm Standard @Anycubic Kobra S1 0.8 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.32mm Standard @Anycubic Kobra S1 0.8 nozzle.json"
+  },
+  {
+    "Name": "0.36mm Standard @Anycubic Kobra 3 Max 0.6 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.36mm Standard @Anycubic Kobra 3 Max 0.6 nozzle.json"
+  },
+  {
+    "Name": "0.36mm Standard @Anycubic Kobra 3 V2 0.6 nozzle",
+    "Version": "1.3.2506.13",
+    "File": "system/Anycubic/process/0.36mm Standard @Anycubic Kobra 3 V2 0.6 nozzle.json"
+  },
+  {
+    "Name": "0.36mm Standard @Anycubic Kobra S1 0.6 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.36mm Standard @Anycubic Kobra S1 0.6 nozzle.json"
+  },
+  {
+    "Name": "0.40mm Standard @Anycubic Kobra 3 Max 0.8 nozzle",
+    "Version": "1.3.2508.15",
+    "File": "system/Anycubic/process/0.40mm Standard @Anycubic Kobra 3 Max 0.8 nozzle.json"
+  },
+  {
+    "Name": "0.40mm Standard @Anycubic Kobra 3 V2 0.8 nozzle",
+    "Version": "1.3.2506.06",
+    "File": "system/Anycubic/process/0.40mm Standard @Anycubic Kobra 3 V2 0.8 nozzle.json"
+  },
+  {
+    "Name": "0.40mm Standard @Anycubic Kobra S1 0.8 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.40mm Standard @Anycubic Kobra S1 0.8 nozzle.json"
+  },
+  {
+    "Name": "0.42mm Standard @Anycubic Kobra 3 Max 0.6 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.42mm Standard @Anycubic Kobra 3 Max 0.6 nozzle.json"
+  },
+  {
+    "Name": "0.42mm Standard @Anycubic Kobra S1 0.6 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.42mm Standard @Anycubic Kobra S1 0.6 nozzle.json"
+  },
+  {
+    "Name": "0.48mm Standard @Anycubic Kobra 3 Max 0.8 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.48mm Standard @Anycubic Kobra 3 Max 0.8 nozzle.json"
+  },
+  {
+    "Name": "0.48mm Standard @Anycubic Kobra 3 V2 0.8 nozzle",
+    "Version": "1.3.2506.06",
+    "File": "system/Anycubic/process/0.48mm Standard @Anycubic Kobra 3 V2 0.8 nozzle.json"
+  },
+  {
+    "Name": "0.48mm Standard @Anycubic Kobra S1 0.8 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.48mm Standard @Anycubic Kobra S1 0.8 nozzle.json"
+  },
+  {
+    "Name": "0.56mm Standard @Anycubic Kobra S1 0.8 nozzle",
+    "Version": "1.3.2509.03",
+    "File": "system/Anycubic/process/0.56mm Standard @Anycubic Kobra S1 0.8 nozzle.json"
+  }
+]

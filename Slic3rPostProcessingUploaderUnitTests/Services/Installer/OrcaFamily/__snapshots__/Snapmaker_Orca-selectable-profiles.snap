@@ -1,0 +1,152 @@
+﻿[
+  {
+    "Name": "0.06 High Quality @Snapmaker U1 (0.2 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.06 High Quality @Snapmaker U1 (0.2 nozzle).json"
+  },
+  {
+    "Name": "0.06 Standard @Snapmaker U1 (0.2 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.06 Standard @Snapmaker U1 (0.2 nozzle).json"
+  },
+  {
+    "Name": "0.08 Extra Fine @Snapmaker U1 (0.4 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.08 Extra Fine @Snapmaker U1 (0.4 nozzle).json"
+  },
+  {
+    "Name": "0.08 High Quality @Snapmaker U1 (0.2 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.08 High Quality @Snapmaker U1 (0.2 nozzle).json"
+  },
+  {
+    "Name": "0.08 High Quality @Snapmaker U1 (0.4 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.08 High Quality @Snapmaker U1 (0.4 nozzle).json"
+  },
+  {
+    "Name": "0.08 Standard @Snapmaker U1 (0.2 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.08 Standard @Snapmaker U1 (0.2 nozzle).json"
+  },
+  {
+    "Name": "0.10 High Quality @Snapmaker U1 (0.2 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.10 High Quality @Snapmaker U1 (0.2 nozzle).json"
+  },
+  {
+    "Name": "0.10 Standard @Snapmaker U1 (0.2 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.10 Standard @Snapmaker U1 (0.2 nozzle).json"
+  },
+  {
+    "Name": "0.10mm Color Mixing @Snapmaker U1 (0.4 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.10mm Color Mixing @Snapmaker U1 (0.4 nozzle).json"
+  },
+  {
+    "Name": "0.12 Fine @Snapmaker U1 (0.4 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.12 Fine @Snapmaker U1 (0.4 nozzle).json"
+  },
+  {
+    "Name": "0.12 High Quality @Snapmaker U1 (0.4 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.12 High Quality @Snapmaker U1 (0.4 nozzle).json"
+  },
+  {
+    "Name": "0.12 Standard @Snapmaker U1 (0.2 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.12 Standard @Snapmaker U1 (0.2 nozzle).json"
+  },
+  {
+    "Name": "0.14 Standard @Snapmaker U1 (0.2 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.14 Standard @Snapmaker U1 (0.2 nozzle).json"
+  },
+  {
+    "Name": "0.16 High Quality @Snapmaker U1 (0.4 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.16 High Quality @Snapmaker U1 (0.4 nozzle).json"
+  },
+  {
+    "Name": "0.16 Optimal @Snapmaker U1 (0.4 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.16 Optimal @Snapmaker U1 (0.4 nozzle).json"
+  },
+  {
+    "Name": "0.18 Standard @Snapmaker U1 (0.6 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.18 Standard @Snapmaker U1 (0.6 nozzle).json"
+  },
+  {
+    "Name": "0.20 Standard @Snapmaker U1 (0.4 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.20 Standard @Snapmaker U1 (0.4 nozzle).json"
+  },
+  {
+    "Name": "0.20 Strength @Snapmaker U1 (0.4 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.20 Strength @Snapmaker U1 (0.4 nozzle).json"
+  },
+  {
+    "Name": "0.24 Draft @Snapmaker U1 (0.4 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.24 Draft @Snapmaker U1 (0.4 nozzle).json"
+  },
+  {
+    "Name": "0.24 Standard @Snapmaker U1 (0.6 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.24 Standard @Snapmaker U1 (0.6 nozzle).json"
+  },
+  {
+    "Name": "0.24 Standard @Snapmaker U1 (0.8 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.24 Standard @Snapmaker U1 (0.8 nozzle).json"
+  },
+  {
+    "Name": "0.28 Extra Draft @Snapmaker U1 (0.4 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.28 Extra Draft @Snapmaker U1 (0.4 nozzle).json"
+  },
+  {
+    "Name": "0.30 Standard @Snapmaker U1 (0.6 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.30 Standard @Snapmaker U1 (0.6 nozzle).json"
+  },
+  {
+    "Name": "0.30 Strength @Snapmaker U1 (0.6 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.30 Strength @Snapmaker U1 (0.6 nozzle).json"
+  },
+  {
+    "Name": "0.32 Standard @Snapmaker U1 (0.8 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.32 Standard @Snapmaker U1 (0.8 nozzle).json"
+  },
+  {
+    "Name": "0.36 Standard @Snapmaker U1 (0.6 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.36 Standard @Snapmaker U1 (0.6 nozzle).json"
+  },
+  {
+    "Name": "0.40 Standard @Snapmaker U1 (0.8 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.40 Standard @Snapmaker U1 (0.8 nozzle).json"
+  },
+  {
+    "Name": "0.42 Standard @Snapmaker U1 (0.6 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.42 Standard @Snapmaker U1 (0.6 nozzle).json"
+  },
+  {
+    "Name": "0.48 Standard @Snapmaker U1 (0.8 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.48 Standard @Snapmaker U1 (0.8 nozzle).json"
+  },
+  {
+    "Name": "0.56 Standard @Snapmaker U1 (0.8 nozzle)",
+    "Version": "",
+    "File": "system/Snapmaker/process/0.56 Standard @Snapmaker U1 (0.8 nozzle).json"
+  }
+]

@@ -1,0 +1,17 @@
+{
+	"from": "User",
+	"inherits": "0.20mm Standard @InfiMech EX",
+	"name": "0.20mm Standard @InfiMech EX - 3D Print Log",
+	"post_process": [
+		"\"D:\\Development\\3d-print-log\\Slic3rPostProcessingUploader\\Slic3rPostProcessingUploader\\bin\\Debug\\net10.0\\Slic3rPostProcessingUploader.exe\" --full"
+	],
+	"print_extruder_id": [
+		"1"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"print_settings_id": "0.20mm Standard @InfiMech EX - 3D Print Log",
+	"version": "2.4.0.1",
+	"wall_loops": "3"
+}

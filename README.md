@@ -146,6 +146,14 @@ For OrcaSlicer-family slicers, vendor-specific process profiles (e.g. TwoTrees, 
 
 If you add a new printer after running the wizard, simply run `install` again — it will detect the new profiles and update them without touching the ones already configured.
 
+### Profiles You Set Up By Hand
+
+The wizard only ever creates and removes its own `<profile> - 3DPrintLog` overrides. If you had already added the uploader to a profile yourself:
+
+- `install` treats the parent system profile as covered and does **not** create a duplicate override next to yours.
+- If your profile points at an old copy of the uploader (it was moved or reinstalled), `install` updates just the path and keeps whatever flags you chose.
+- `uninstall` never edits or deletes your hand-made profiles; it tells you how many still reference the uploader so you can remove them in the slicer.
+
 ### Supported Slicers (Setup Wizard)
 
 | Slicer | Config directory |

@@ -1,0 +1,13 @@
+{
+    "enable_support": "1",
+    "from": "User",
+    "inherits": "0.16mm Standard @Anycubic Kobra S1 0.4 nozzle",
+    "is_custom_defined": "0",
+    "name": "0.16mm Standard @AC KS1 - 3D Print Log",
+    "post_process": [
+        "\"C:\\Slic3rUploader\\Slic3rPostProcessingUploader.exe\" --full"
+    ],
+    "print_settings_id": "0.16mm Standard @AC KS1 - 3D Print Log",
+    "version": "1.3.2507.10",
+    "wall_loops": "3"
+}
