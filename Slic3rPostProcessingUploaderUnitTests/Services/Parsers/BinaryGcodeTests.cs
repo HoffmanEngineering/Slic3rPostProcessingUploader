@@ -278,4 +278,17 @@ public sealed class BinaryGcodeTests
         // The 640x480 PNG block, not one of the QOI ones.
         StringAssert.StartsWith(result.settings.Snapshot, "iVBORw0KGgo");
     }
+
+    [TestMethod]
+    public void ShouldParseIdenticallyToTheAsciiExportOfTheSameSlice()
+    {
+        // Both fixtures come from the same PrusaSlicer 2.9.2 CLI run, once as .gcode and once as .bgcode.
+        var ascii = TestData.Load(Path.Combine("PrusaSlicer", "prusaslicer-2.9.2-mk4s-mmu3-two-slots-pla-petg.gcode"));
+        var binary = TestData.Load(Path.Combine("PrusaSlicer", "prusaslicer-2.9.2-mk4s-mmu3-two-slots-pla-petg-binary.bgcode"));
+
+        var fromAscii = new PrusaParser("").ParseGcode(ascii);
+        var fromBinary = new PrusaParser("").ParseGcode(binary);
+
+        Assert.AreEqual(fromAscii.ToJSON(), fromBinary.ToJSON());
+    }
 }
