@@ -88,7 +88,7 @@
                     Sparse Infill Anchor Length: {{infill_anchor}}
                     Max Length of Infill Anchor: {{infill_anchor_max}}
                     Internal Solid Infill Pattern: {{internal_solid_infill_pattern}}
-                    Apply Gap Fill: {{apply_gap_fill}}
+                    Apply Gap Fill: {{gap_fill_target}}
                     Filter Out Tiny Gaps: {{filter_out_gap_fill}}
                     Infill/Wall Overlap: {{infill_wall_overlap}}
                   Advanced:
@@ -172,7 +172,7 @@
                     Bottom Interface Spacing: {{support_bottom_interface_spacing}}
                     Normal Support Expansion: {{support_expansion}}
                     Support/Object XY Distance: {{support_object_xy_distance}}
-                    Don't Support Bridges: {{dont_support_bridges}}
+                    Don't Support Bridges: {{bridge_no_support}}
 
                 Multimaterial:
                   Prime Tower:

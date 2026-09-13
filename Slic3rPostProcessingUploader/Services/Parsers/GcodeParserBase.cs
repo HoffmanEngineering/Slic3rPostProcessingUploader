@@ -145,6 +145,28 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
             return (numPlaceholders, numMatches);
         }
 
+        /// <summary>
+        /// Every distinct placeholder in the note template that has no value in the gcode, in template order.
+        /// Used by tests to catch slicer releases that rename or drop a setting the built-in templates rely on.
+        /// </summary>
+        public IReadOnlyList<string> GetMissingPlaceholders(string gcode)
+        {
+            var settings = GcodeSettings.Parse(GcodeWindow.Trim(gcode), SettingSeparators);
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var missing = new List<string>();
+
+            foreach (Match match in TemplatePlaceholderRegex().Matches(noteTemplate))
+            {
+                var key = match.Groups[1].Value;
+                if (seen.Add(key) && string.IsNullOrEmpty(settings.Get(key)))
+                {
+                    missing.Add(key);
+                }
+            }
+
+            return missing;
+        }
+
         protected string GetSlicerVersion(string gcode)
         {
             var regex = new Regex(SlicerVersionPattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
