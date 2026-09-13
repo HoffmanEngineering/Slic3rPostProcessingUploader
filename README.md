@@ -34,7 +34,16 @@ PrusaSlicer 3.0 still has the `Post-processing scripts` print setting, so this u
 
 ## Usage:
 
-Download the [latest release for your operating system](https://github.com/ChristopherHoffman/Slic3rPostProcessingUploader/releases), and save the file to a location on your computer.
+Download the [latest release for your operating system](https://github.com/HoffmanEngineering/Slic3rPostProcessingUploader/releases), and save the file to a location on your computer.
+
+| Operating system | Download |
+| --- | --- |
+| Windows (x64) | `Slic3rPostProcessingUploader-win-x64.exe` |
+| macOS (Apple Silicon) | `Slic3rPostProcessingUploader-osx-arm64` |
+| macOS (Intel) | `Slic3rPostProcessingUploader-osx-x64` |
+| Linux (x64) | `Slic3rPostProcessingUploader-linux-x64` |
+
+On macOS and Linux, mark the file executable after downloading (`chmod +x Slic3rPostProcessingUploader-osx-arm64`).
 
 In the Slicer's 'Post-Processing Scripts' section, add the path to this file. Full/Absolute paths are recommended:
 
@@ -181,6 +190,19 @@ I used these settings:
 - Use Adaptive Pressure Advance: 0
 - Acceleration to Deceleration: 50%
 ```
+
+## Releasing
+
+Releases are cut by pushing a tag. There is no version to bump in the csproj and no changelog to edit:
+
+```bash
+git tag v1.2.0
+git push origin v1.2.0
+```
+
+The [Release workflow](.github/workflows/release.yml) builds and tests on every platform, publishes the four binaries above with the version taken from the tag (so `--version` prints `1.2.0`), and creates the GitHub Release with notes generated from the merged pull requests since the previous tag. PRs are grouped by label per [`.github/release.yml`](.github/release.yml), so label PRs `enhancement`, `bug`, or `documentation` to land them in the right section.
+
+Tags are protected by a repository ruleset: they can only be created, moved, or deleted by a repository admin.
 
 ## Questions & Discussions
 
