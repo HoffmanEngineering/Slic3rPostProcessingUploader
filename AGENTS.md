@@ -31,7 +31,7 @@ G-code file → ArgumentParser → ParserFactory → Slicer-specific Parser → 
 - **Services/UploadService.cs**: Posts the DTO to the API over an injected `HttpClient`; every failure becomes a `UserFacingException`
 - **Services/PrintMetadata.cs**: Pure helpers for `file_name`/`print_name` (honours `SLIC3R_PP_OUTPUT_NAME`) and the new-print URL
 - **ArgumentParser.cs**: CLI argument handling (`--default`, `--full`, `--template`, `--debug`, etc.)
-- **ParserFactory.cs**: Detects slicer type from G-code markers, falls back to template match scoring
+- **ParserFactory.cs**: A `SlicerRegistration` registry (one entry per slicer). Detection is the first registration whose `Detect` matches; otherwise every registration's full template is scored against the G-code and the best match wins (ties go to the earlier entry, so Orca is the ultimate default)
 - **Services/Parsers/{SlicerName}/**: Each slicer has its own directory with:
   - Parser class implementing `IGcodeParser`
   - Default and Full note templates
@@ -63,9 +63,9 @@ Keep fixtures compact by replacing unused toolpath bodies with a short omission 
 ## Adding a New Slicer
 
 1. Create `Services/Parsers/{SlicerName}/` directory
-2. Implement parser class with `IGcodeParser` interface and static `Is{SlicerName}(string gcode)` detection method
+2. Implement parser class deriving from `GcodeParserBase` with a static `Is{SlicerName}(string gcode)` detection method
 3. Create `{SlicerName}DefaultNoteTemplate` and `{SlicerName}FullNoteTemplate` classes
-4. Register in `ParserFactory.GetParser()` and add `Build{SlicerName}Parser()` method
+4. Add one `SlicerRegistration` line to the `Slicers` array in `ParserFactory.cs` (name, detection method, both template factories, parser factory). The name is used for the `{Name}PercentMatch` telemetry event
 5. Add a real G-code fixture under `Slic3rPostProcessingUploaderUnitTests/TestData/{SlicerName}/`
 6. Add data-driven parser-factory, parsing, and snapshot coverage for every fixture in that folder
 
