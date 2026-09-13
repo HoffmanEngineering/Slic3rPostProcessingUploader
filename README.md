@@ -15,10 +15,14 @@ Create a free account at https://www.3dprintlog.com today and enjoy all the feat
 This is a new project, currently a work in progress. Feel free to help out by submitting requests, bug reports, or helping to make Pull Requests.
 
 - OrcaSlicer
-- PrusaSlicer (2.x and 3.0 alpha)
+- PrusaSlicer (2.x and 3.0 alpha, ASCII `.gcode` and binary `.bgcode`)
 - Bambu Studio
 - FLSun Slicer
 - Anycubic Slicer Next
+
+#### PrusaSlicer binary G-code (.bgcode)
+
+Printers that require binary G-code (MK4/MK4S, MINI+, XL, CORE One) are supported: the uploader reads the metadata, print summary, settings and PNG thumbnail straight from the `.bgcode` container, so nothing changes in your slicer setup. The G-code toolpaths themselves are never decoded. If a file uses a compression scheme this tool does not understand, it says so and suggests re-exporting as ASCII.
 
 #### PrusaSlicer 3.0
 
@@ -56,7 +60,7 @@ Mac/Linux:
 
 `--local-dev`: Use the local development environment
 
-`--debug <path>`: Save debug information to the specified path. Note that debug mode reads and logs the entire G-code file, so it is slower on large files than a normal run, which only reads the start and end of the file where the slicer writes its settings.
+`--debug <path>`: Save debug information to the specified path. Note that debug mode reads and logs the entire G-code file, so it is slower on large files than a normal run, which only reads the start and end of the file where the slicer writes its settings. For binary G-code the logged file contents are the decoded metadata, not the raw binary.
 
 `--opt-out-telemetry`: Disable telemetry tracking. To help improve the plugin, we track slicer and plugin versions, as well as log errors that are thrown. No personal data is collected.
 

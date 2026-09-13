@@ -85,11 +85,14 @@ try
             "The slicer should pass the exported G-code path as the last argument.");
     }
 
-    // Only the head and tail of the file carry slicer metadata, so that is all we read. Debug mode reads the whole file
-    // so the full contents can be logged for troubleshooting.
-    string fileContents = string.IsNullOrEmpty(arguments.DebugPath)
-        ? GcodeWindow.ReadFromFile(arguments.InputFile)
-        : File.ReadAllText(arguments.InputFile);
+    // Binary G-code (PrusaSlicer .bgcode) is decoded into the ASCII header it stands for; the parsers never see the
+    // difference. For text files only the head and tail carry slicer metadata, so that is all we read. Debug mode
+    // reads the whole file so the full contents can be logged for troubleshooting.
+    string fileContents = BinaryGcode.IsBinaryGcodeFile(arguments.InputFile)
+        ? BinaryGcode.ReadFromFile(arguments.InputFile)
+        : string.IsNullOrEmpty(arguments.DebugPath)
+            ? GcodeWindow.ReadFromFile(arguments.InputFile)
+            : File.ReadAllText(arguments.InputFile);
     LogFileContents(arguments.DebugPath, fileContents);
 
     IGcodeParser parser = ParserFactory.GetParser(arguments, telemetry, output, fileContents);
