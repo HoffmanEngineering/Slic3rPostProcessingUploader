@@ -72,28 +72,19 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers
         }
 
         [TestMethod]
-        public void ShouldReadOnlyTheHeadAndTailWhenTheFileIsLarge()
+        public void ShouldReadOnlyTheHeadAndTailWhenARealFixtureIsLarge()
         {
+            var fixture = TestData.Load(Path.Combine("AnycubicSlicerNext", "anycubicslicernext-1.3.2-calibration-cube-two-filament.gcode"));
+            var expandedFixture = string.Concat(fixture, fixture, fixture, fixture);
             var path = Path.GetTempFileName();
             try
             {
-                var head = "; HEAD\n";
-                var tail = "; TAIL\n";
-                using (var writer = new StreamWriter(path, false, new UTF8Encoding(false)))
-                {
-                    writer.Write(head);
-                    var line = "G1 X10 Y10 E0.5\n";
-                    for (long written = 0; written < GcodeWindow.WindowSize * 3L; written += line.Length)
-                    {
-                        writer.Write(line);
-                    }
-                    writer.Write(tail);
-                }
+                File.WriteAllText(path, expandedFixture, new UTF8Encoding(false));
 
                 var result = GcodeWindow.ReadFromFile(path);
 
-                Assert.IsTrue(result.StartsWith(head));
-                Assert.IsTrue(result.EndsWith(tail));
+                StringAssert.StartsWith(result, fixture[..100]);
+                StringAssert.EndsWith(result, fixture[^100..]);
                 Assert.IsTrue(result.Length <= GcodeWindow.WindowSize * 2 + 1);
             }
             finally
@@ -114,7 +105,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers
                     // Fill with 3-byte characters so the tail boundary lands mid-character.
                     for (long written = 0; written < GcodeWindow.WindowSize * 3L; written += 1)
                     {
-                        writer.Write('€');
+                        writer.Write('\u20ac');
                     }
                     writer.Write("\n; TAIL\n");
                 }

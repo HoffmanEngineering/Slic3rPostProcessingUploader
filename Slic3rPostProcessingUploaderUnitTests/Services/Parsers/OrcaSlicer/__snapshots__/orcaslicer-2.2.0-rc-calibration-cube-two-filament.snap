@@ -6,9 +6,43 @@
     "note": "Settings:\n\nQuality:\n  Layer Height:\n    Layer Height: 0.2\n    First Layer Height: 0.200\n  Line Width:\n    Default Line Width: 0.4\n  Seam:\n    Seam Position: aligned\n  Precision:\n    Precise Wall: 0\n  Ironing:\n    Ironing: no ironing\n  Wall Generator:\n    Generator: arachne\n  Walls And Surfaces:\n    Only One Wall on Top Surfaces: 0\n\nStrength:\n  Walls:\n    Wall Loops: 3\n  Top/Bottom Shells:\n    Top Shell Layers: 4\n    Top Shell Thickness: 0.8\n    Bottom Shell Layers: 3\n    Bottom Shell Thickness: 0\n  Infill:\n    Sparse Infill Density: 15%\n    Sparse Infill Pattern: crosshatch\n\nSpeed:\n  First Layer Speed:\n    First Layer: 45\n    Number of Slow Layers: 0\n  Other Layers Speed:\n    Outer Wall: 60\n    Inner Wall: 80\n    Sparse Infill: 80\n    Internal Solid Infill: 80\n    Top Surface: 50\n  Travel Speed:\n    Travel: 150\n\nSupport:\n  Support:\n    Enable Support: 0\n    Type: normal(auto)\n    Style: default\n    Threshold Angle: 30\n    On Build Plate Only: 0\n  Raft:\n    Raft Layers: 0\n\nMultimaterial:\n  Prime Tower:\n    Enable: 0\n    Width: 60\n    Brim Width: 3\n  Ooze Prevention:\n    Enable: 0\n  Flush Options:\n    Flush into Objects' Infill: 0\n    Flush into Objects' Support: 1\n  Advanced:\n    Use Beam Interlocking: 0\n\nOther:\n  Skirt:\n    Skirt Type: combined\n    Skirt Loops: 0\n    Skirt Min Extrusion Length: 4\n  Brim:\n    Brim Type: auto_brim\n    Brim Width: 5\n  Special Mode:\n    Slicing Mode: regular\n    Print Sequence: by layer\n    Spiral Vase: 0\n    Fuzzy Skin: none",
     "print_name": null,
     "time_stamp": null,
-    "estimated_print_time_seconds": 1319,
-    "material_used_mg": 4530,
-    "Snapshot": "iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAACoUlEQVR4Ae1YTU8TURR9CzcajQGhdN\npCQRITFyYudOHGmLgwJEYXhhjQICVChUiVqkFBoIHwtQBCWLHip/BT+lMec4fcZijvzdz3MfNmEk5y\n06Yzac85957b1zJ2Azl63r5pFaYnzlgeUd353x49PeRQ8Pz2o9FXLA8A15F4d8E1lmWUfi2cy8hjwT\n23HvQOsywhynVRwUjde/F8mmUBquS7u8FcIhxU3XIScIrrD0/2lISkFvA410eOd3n530/e93mce426\ncjcSCzjFdSBfXJjhfZMfeKk5HwhQ7UQi3aCQD1z3iRdmJgMhOEbV3TVlAdYCDuGijgwQh8fu68MHW1\noCjANOXY8wKuB8dX9DeN1EgPZIVVaW2qYfGicAOje0vUp+n8H1P22ygOK3Gh9sLVsRIMoAkIeRK87X\nSCHHfCkJgCr//m5VQGfF+mREeREJxfu1BGCZzjG4jK7Lwn5NuJ8puBfJGwmAqqw0tQV4P+odErhiqa\n5bE2DSDW9xljwy3a5bF2Az4BTXExGAAdc5JogKjx+pCsDSPSpAUVxPXIDOuo0amUJtgg/Uv6QrQCXg\nUUEF8tW9jfQ7QAk4JaheYy4opwKwwgGPW4/o/sjRtpsMRHWDGtQ4950IgKKQB/eHNv+620KmAvqnPv\nKSv8lyK8D594CJgOLiVz4wN9U5pUZlJnMCYPYrq0uXz0N/BuDPVG0B/Z/G22kI8BqzvoDmlddk5Hve\nj9F/UgLuPnvaSlLApfvN4DFuzO48edxiukhKgMh9Y9dl6H03dm5bAJCXHdqg7r9+af+fa1sC4PxfXm\n4k67oMqt2QCXBCHqES8LiAInGjoOrChoDUXJchbqQSW4+2oSLAuesyiLqRG/JhiATkgngYeJ7KJXkE\nrNtMBTWLuABl35zINAlR9wAAAABJRU5ErkJggg==",
-    "file_name": null
+    "estimated_print_time_seconds": 2553,
+    "material_used_mg": null,
+    "Snapshot": "sVoju7FGk09vp0QPoe1HobsiVkhhmwnuSFs9tllF3Rc=",
+    "file_name": null,
+    "filamentUsage": [
+      {
+        "Id": null,
+        "Filament": {
+          "Id": "00000000-0000-0000-0000-000000000000",
+          "DisplayName": "Other"
+        },
+        "AmountMg": null,
+        "LengthInM": null,
+        "VolumeMl": null,
+        "EstimatedAmountMg": null,
+        "EstimatedLengthInM": 1.52,
+        "EstimatedVolumeMl": null,
+        "Source": "Length",
+        "EstimatedSource": "Length",
+        "Notes": "Slot 1 · Teal (#26A69A) · PLA"
+      },
+      {
+        "Id": null,
+        "Filament": {
+          "Id": "00000000-0000-0000-0000-000000000000",
+          "DisplayName": "Other"
+        },
+        "AmountMg": null,
+        "LengthInM": null,
+        "VolumeMl": null,
+        "EstimatedAmountMg": null,
+        "EstimatedLengthInM": 1.874,
+        "EstimatedVolumeMl": null,
+        "Source": "Length",
+        "EstimatedSource": "Length",
+        "Notes": "Slot 2 · Yellow (#FFFF00) · PLA"
+      }
+    ]
   }
 }
