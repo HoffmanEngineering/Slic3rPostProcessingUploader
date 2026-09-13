@@ -29,9 +29,10 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         protected abstract string SlicerName { get; }
 
         /// <summary>
-        /// Regex pattern to extract the slicer version from gcode.
+        /// Regex that captures the slicer version from gcode in group 1. Implemented with <see cref="GeneratedRegexAttribute"/>
+        /// so the pattern is compiled at build time rather than interpreted at runtime under <c>PublishAot</c>.
         /// </summary>
-        protected abstract string SlicerVersionPattern { get; }
+        protected abstract Regex SlicerVersionRegex { get; }
 
         /// <summary>
         /// Creates the default note template for this slicer.
@@ -74,15 +75,17 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
 
         public virtual CuraSettingDto ParseGcode(string gcode)
         {
-            var dto = new CuraSettingDto();
-            var settings = new CuraSettings();
-
             // Slicer metadata only lives at the start and end of the file, so large files are narrowed down to those regions
             // and the "; key = value" lines are indexed once instead of scanning the file per setting.
             gcode = GcodeWindow.Trim(gcode);
             var gcodeSettings = GcodeSettings.Parse(gcode, SettingSeparators);
 
-            settings.estimated_print_time_seconds = ParseEstimatedPrintTime(gcode, gcodeSettings);
+            var settings = new CuraSettings
+            {
+                estimated_print_time_seconds = ParseEstimatedPrintTime(gcode, gcodeSettings),
+                note = RenderNoteTemplate(gcodeSettings),
+                Snapshot = GetSnapshot(gcode),
+            };
 
             if (SupportsMultiFilament)
             {
@@ -97,19 +100,12 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
                 settings.material_used_mg = (int?)EstimateFilamentUsageInMg(gcodeSettings);
             }
 
-            settings.note = RenderNoteTemplate(gcodeSettings);
-
-            string? snapshot = GetSnapshot(gcode);
-            if (snapshot != null)
+            return new CuraSettingDto
             {
-                settings.Snapshot = snapshot;
-            }
-
-            dto.Slicer = SlicerName;
-            dto.CuraVersion = GetSlicerVersion(gcode);
-            dto.settings = settings;
-
-            return dto;
+                Slicer = SlicerName,
+                CuraVersion = GetSlicerVersion(gcode),
+                settings = settings,
+            };
         }
 
         /// <summary>
@@ -177,8 +173,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
 
         protected string GetSlicerVersion(string gcode)
         {
-            var regex = new Regex(SlicerVersionPattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
-            var match = regex.Match(gcode);
+            var match = SlicerVersionRegex.Match(gcode);
             if (match.Success)
             {
                 return match.Groups[1].Value.Trim();

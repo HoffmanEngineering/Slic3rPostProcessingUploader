@@ -1,9 +1,13 @@
+using System.Text.RegularExpressions;
+
 namespace Slic3rPostProcessingUploader.Services.Parsers.BambuStudio
 {
-    internal class BambuStudioParser(string? noteTemplate) : GcodeParserBase(noteTemplate)
+    internal partial class BambuStudioParser(string? noteTemplate) : GcodeParserBase(noteTemplate)
     {
         protected override string SlicerName => "BambuStudioSlicer";
-        protected override string SlicerVersionPattern => @"; BambuStudio (.+)\s";
+        [GeneratedRegex(@"; BambuStudio (.+)\s", RegexOptions.IgnoreCase | RegexOptions.Multiline)]
+        private static partial Regex VersionRegex();
+        protected override Regex SlicerVersionRegex => VersionRegex();
         protected override INoteTemplate CreateDefaultTemplate() => EmbeddedNoteTemplate.Default("BambuStudio");
         protected internal override ReadOnlySpan<char> SettingSeparators => "=:";
         protected override string FilamentLengthKey => "total filament length [mm]";

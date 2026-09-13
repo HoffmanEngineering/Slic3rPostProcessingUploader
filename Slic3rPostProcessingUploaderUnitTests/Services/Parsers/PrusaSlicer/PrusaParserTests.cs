@@ -74,14 +74,15 @@ public sealed class PrusaParserTests
         var result = new PrusaParser("").ParseGcode(gcode);
 
         Assert.IsNull(result.settings.material_used_mg);
-        var notes = result.settings.filamentUsage!.Select(f => f.Notes).ToList();
+        var filamentUsage = result.settings.filamentUsage!;
+        var notes = filamentUsage.Select(f => f.Notes).ToList();
         CollectionAssert.AreEqual(new[]
         {
             "Slot 1 · Red (#E72F1D) · PLA",
             "Slot 3 · Blue (#1F77B4) · PLA",
         }, notes);
-        Assert.AreEqual(1.363, result.settings.filamentUsage[0].EstimatedLengthInM);
-        Assert.AreEqual(1.613, result.settings.filamentUsage[1].EstimatedLengthInM);
+        Assert.AreEqual(1.363, filamentUsage[0].EstimatedLengthInM);
+        Assert.AreEqual(1.613, filamentUsage[1].EstimatedLengthInM);
     }
 
     [TestMethod]

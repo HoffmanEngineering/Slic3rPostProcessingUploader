@@ -1,9 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Slic3rPostProcessingUploader.Services.Parsers
 {
     public class PrintFilamentSummaryDto
@@ -12,7 +6,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         /// GUID
         /// </summary>
         public string? Id { get; set; }
-        public FilamentSummary Filament { get; set; }
+        public required FilamentSummary Filament { get; set; }
 
         public double? AmountMg { get; set; }
         public double? LengthInM { get; set; }
@@ -25,6 +19,6 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         public PrintFilamentSourceMeasurement Source { get; set; }
         public PrintFilamentSourceMeasurement EstimatedSource { get; set; }
 
-        public string Notes { get; set; }
+        public required string Notes { get; set; }
     }
 }

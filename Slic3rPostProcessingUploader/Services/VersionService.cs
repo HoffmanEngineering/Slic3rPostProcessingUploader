@@ -1,8 +1,8 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 namespace Slic3rPostProcessingUploader.Services
 {
-    internal class VersionService : IVersionService
+    internal class VersionService
     {
         public string GetVersion()
         {
