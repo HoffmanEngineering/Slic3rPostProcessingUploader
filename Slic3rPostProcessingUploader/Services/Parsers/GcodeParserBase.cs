@@ -230,7 +230,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
             }
         }
 
-        protected int? ParseAsSeconds(string input)
+        internal int? ParseAsSeconds(string input)
         {
             if (string.IsNullOrWhiteSpace(input))
             {
@@ -243,13 +243,19 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
                 return (int)Math.Floor((double)durationAsSeconds);
             }
 
-            // Try and parse a time formatted as 1h 35m 50s into seconds.
+            // Try and parse a time formatted as 1d 1h 35m 50s into seconds.
             var timeParts = input.Split(' ');
-            var hours = timeParts.Where(x => x.Contains('h')).Select(x => int.Parse(x.Replace("h", ""))).FirstOrDefault();
-            var minutes = timeParts.Where(x => x.Contains('m')).Select(x => int.Parse(x.Replace("m", ""))).FirstOrDefault();
-            var seconds = timeParts.Where(x => x.Contains('s')).Select(x => int.Parse(x.Replace("s", ""))).FirstOrDefault();
+            var days = timeParts.Where(x => x.Contains('d')).Select(x => ParseIntOrZero(x.Replace("d", ""))).FirstOrDefault();
+            var hours = timeParts.Where(x => x.Contains('h')).Select(x => ParseIntOrZero(x.Replace("h", ""))).FirstOrDefault();
+            var minutes = timeParts.Where(x => x.Contains('m')).Select(x => ParseIntOrZero(x.Replace("m", ""))).FirstOrDefault();
+            var seconds = timeParts.Where(x => x.Contains('s')).Select(x => ParseIntOrZero(x.Replace("s", ""))).FirstOrDefault();
 
-            return hours * 3600 + minutes * 60 + seconds;
+            return days * 86400 + hours * 3600 + minutes * 60 + seconds;
+        }
+
+        private static int ParseIntOrZero(string value)
+        {
+            return int.TryParse(value, out var result) ? result : 0;
         }
 
         protected List<PrintFilamentSummaryDto> GetFilamentUsage(GcodeSettings settings)
