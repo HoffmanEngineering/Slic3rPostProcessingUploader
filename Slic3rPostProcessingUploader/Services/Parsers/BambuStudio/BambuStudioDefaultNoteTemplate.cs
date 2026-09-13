@@ -39,7 +39,6 @@
                 Speed:
                   First Layer Speed:
                     First Layer: {{initial_layer_speed}}
-                    Number of Slow Layers: {{slow_down_layers}}
                   Other Layers Speed:
                     Outer Wall: {{outer_wall_speed}}
                     Inner Wall: {{inner_wall_speed}}
@@ -74,9 +73,7 @@
 
                 Other:
                   Skirt:
-                    Skirt Type: 
                     Skirt Loops: {{skirt_loops}}
-                    Skirt Min Extrusion Length: {{min_skirt_length}}
                   Brim:
                     Brim Type: {{brim_type}}
                     Brim Width: {{brim_width}}

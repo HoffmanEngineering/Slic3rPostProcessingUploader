@@ -49,20 +49,7 @@ public sealed class TemplatePlaceholderCoverageTests
             template => new BambuStudioParser(template),
             new BambuStudioDefaultNoteTemplate(),
             new BambuStudioFullNoteTemplate(),
-            new Dictionary<string, string>
-            {
-                // The Bambu Studio templates were derived from the OrcaSlicer ones. These settings exist only in
-                // OrcaSlicer; Bambu Studio 1.10 does not write them at all.
-                ["slow_down_layers"] = "OrcaSlicer-only setting",
-                ["min_skirt_length"] = "OrcaSlicer-only setting",
-                ["skirt_speed"] = "OrcaSlicer-only setting",
-                ["gap_fill_target"] = "OrcaSlicer-only setting; Bambu Studio only writes filter_out_gap_fill",
-                ["small_area_infill_flow_compensation"] = "OrcaSlicer-only setting",
-                ["extra_perimeters_on_overhangs"] = "OrcaSlicer-only setting",
-                ["bridge_acceleration"] = "OrcaSlicer-only setting",
-                ["internal_solid_infill_acceleration"] = "OrcaSlicer-only setting",
-                ["travel_acceleration"] = "OrcaSlicer-only setting",
-            }),
+            new Dictionary<string, string>()),
         new(
             "FLSunSlicer",
             Path.Combine("FLSunSlicer", "flsunslicer-2.0.2-calibration-cube.gcode"),
