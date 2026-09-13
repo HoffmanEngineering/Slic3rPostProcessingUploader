@@ -94,6 +94,15 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
         }
 
         [TestMethod]
+        public void Constructor_WithTemplatePathAsFinalArgument_InputFileIsNull()
+        {
+            // No G-code path was given at all; the value belongs to --template, so it must not be mistaken for the input file.
+            var parser = new ArgumentParser(["--template", "my.txt"]);
+            Assert.AreEqual("my.txt", parser.NoteTemplatePath);
+            Assert.IsNull(parser.InputFile);
+        }
+
+        [TestMethod]
         public void Constructor_WithTemplatePathSameAsInputFile_ThrowsUserFacingException()
         {
             var ex = Assert.ThrowsException<UserFacingException>(() => new ArgumentParser(["--template", "input.gcode", "input.gcode"]));
@@ -174,6 +183,15 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
         {
             var ex = Assert.ThrowsException<UserFacingException>(() => new ArgumentParser(["--debug", "--invalid", "input.gcode"]));
             Assert.AreEqual("Debug path cannot start with --: --invalid", ex.Message);
+        }
+
+        [TestMethod]
+        public void Constructor_WithDebugPathAsFinalArgument_InputFileIsNull()
+        {
+            // This is the --help example run outside a slicer: the path belongs to --debug and there is no G-code file.
+            var parser = new ArgumentParser(["--default", "--debug", "C:\\debug\\"]);
+            Assert.AreEqual("C:\\debug\\", parser.DebugPath);
+            Assert.IsNull(parser.InputFile);
         }
 
         [TestMethod]

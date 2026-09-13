@@ -44,6 +44,12 @@ public sealed class VersionServiceTests
         string version = new VersionService().GetVersion();
 
         Assert.AreNotEqual("Unknown", version);
-        Assert.IsFalse(version.EndsWith(".0.0", StringComparison.Ordinal), $"Expected the informational version, got '{version}'");
+
+        // The 4-part AssemblyVersion (e.g. "2.0.0.0") is the fallback; a real build must report the informational
+        // version instead. Compared against the assembly's own version rather than a ".0.0" suffix so that a
+        // legitimate X.0.0 release (built with -p:Version=2.0.0) does not trip the assertion.
+        string assemblyVersion = typeof(VersionService).Assembly.GetName().Version!.ToString();
+        Assert.AreNotEqual(assemblyVersion, version, $"Expected the informational version, got the padded AssemblyVersion '{version}'");
+        Assert.AreEqual(3, version.Split('-')[0].Split('.').Length, $"Expected a three-part version, got '{version}'");
     }
 }

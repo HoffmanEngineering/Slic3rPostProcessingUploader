@@ -68,6 +68,7 @@ namespace Slic3rPostProcessingUploader.Services
 
                     this.NoteTemplatePath = args[i + 1];
                     i++; // The path value belongs to --template; skip it so it isn't checked as a flag.
+                    ClearInputFileIfConsumed(i, args.Length);
 
                     if (string.IsNullOrEmpty(this.NoteTemplatePath))
                     {
@@ -98,6 +99,7 @@ namespace Slic3rPostProcessingUploader.Services
 
                     this.DebugPath = args[i + 1];
                     i++; // The path value belongs to --debug; skip it so it isn't checked as a flag.
+                    ClearInputFileIfConsumed(i, args.Length);
 
                     if (string.IsNullOrEmpty(this.DebugPath))
                     {
@@ -149,6 +151,19 @@ namespace Slic3rPostProcessingUploader.Services
             }
         }
 
+
+        /// <summary>
+        /// The input file is provisionally the last argument, but when an option consumes that argument as its value
+        /// (e.g. <c>--debug C:\debug\</c> with no G-code path after it) there is no input file at all. Clearing it here
+        /// lets the caller report "no G-code file was given" instead of a misleading "path cannot be the same as input file".
+        /// </summary>
+        private void ClearInputFileIfConsumed(int valueIndex, int argCount)
+        {
+            if (valueIndex == argCount - 1)
+            {
+                this.InputFile = null;
+            }
+        }
 
         public void DisplayHelpDocs()
         {
