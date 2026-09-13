@@ -42,7 +42,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         /// The characters accepted between setting name and value (default: "=").
         /// Override for slicers that use different separators (e.g., "=:" for BambuStudio).
         /// </summary>
-        protected virtual ReadOnlySpan<char> SettingSeparators => "=";
+        protected internal virtual ReadOnlySpan<char> SettingSeparators => "=";
 
         /// <summary>
         /// The key used to find filament length in gcode (default: "filament used [mm]").
@@ -125,10 +125,17 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         /// </summary>
         public (int numPlaceholders, int numMatches) CountTemplateMatches(string gcode)
         {
+            return CountTemplateMatches(GcodeSettings.Parse(GcodeWindow.Trim(gcode), SettingSeparators));
+        }
+
+        /// <summary>
+        /// Same as <see cref="CountTemplateMatches(string)"/> but against settings that were already indexed,
+        /// so the factory can score several parsers without re-parsing the gcode for each one.
+        /// </summary>
+        public (int numPlaceholders, int numMatches) CountTemplateMatches(GcodeSettings settings)
+        {
             int numPlaceholders = 0;
             int numMatches = 0;
-
-            var settings = GcodeSettings.Parse(GcodeWindow.Trim(gcode), SettingSeparators);
 
             var matches = TemplatePlaceholderRegex().Matches(noteTemplate);
             foreach (Match match in matches)
