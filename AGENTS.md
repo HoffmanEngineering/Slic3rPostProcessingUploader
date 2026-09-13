@@ -32,9 +32,8 @@ G-code file → ArgumentParser → ParserFactory → Slicer-specific Parser → 
 - **Services/PrintMetadata.cs**: Pure helpers for `file_name`/`print_name` (honours `SLIC3R_PP_OUTPUT_NAME`) and the new-print URL
 - **ArgumentParser.cs**: CLI argument handling (`--default`, `--full`, `--template`, `--debug`, etc.)
 - **ParserFactory.cs**: A `SlicerRegistration` registry (one entry per slicer). Detection is the first registration whose `Detect` matches; otherwise every registration's full template is scored against the G-code and the best match wins (ties go to the earlier entry, so Orca is the ultimate default)
-- **Services/Parsers/{SlicerName}/**: Each slicer has its own directory with:
-  - Parser class implementing `IGcodeParser`
-  - Default and Full note templates
+- **Services/Parsers/{SlicerName}/**: Each slicer has its own directory containing its parser class (implementing `IGcodeParser`)
+- **Templates/{SlicerName}/default.txt** and **full.txt**: The built-in note templates, compiled in as embedded resources and loaded through `Services/EmbeddedNoteTemplate.cs`. They are LF-only (enforced by `.gitattributes`) and the loader strips the trailing newline so rendered notes are byte-identical across platforms
 - **CuraSettingDto.cs**: Main DTO sent to the API
 
 ### Supported Slicers
@@ -43,7 +42,7 @@ OrcaSlicer, PrusaSlicer, Bambu Studio, FLSun Slicer, Anycubic Slicer Next
 
 ### Template System
 
-Templates use `{{setting_name}}` placeholders that get replaced with values from G-code comments like `; setting_name = value`.
+Templates use `{{setting_name}}` placeholders that get replaced with values from G-code comments like `; setting_name = value`. Built-in templates are `.txt` files under `Slic3rPostProcessingUploader/Templates/`; custom ones come from `--template <path>` via `NoteTemplateFromFile`. Both implement `INoteTemplate`.
 
 ## Testing
 
@@ -64,10 +63,11 @@ Keep fixtures compact by replacing unused toolpath bodies with a short omission 
 
 1. Create `Services/Parsers/{SlicerName}/` directory
 2. Implement parser class deriving from `GcodeParserBase` with a static `Is{SlicerName}(string gcode)` detection method
-3. Create `{SlicerName}DefaultNoteTemplate` and `{SlicerName}FullNoteTemplate` classes
+3. Create `Templates/{SlicerName}/default.txt` and `full.txt` and add both as `<EmbeddedResource>` entries in `Slic3rPostProcessingUploader.csproj` (the `LogicalName` must be `Templates/{SlicerName}/{kind}.txt`). The parser's `CreateDefaultTemplate()` returns `EmbeddedNoteTemplate.Default("{SlicerName}")`
 4. Add one `SlicerRegistration` line to the `Slicers` array in `ParserFactory.cs` (name, detection method, both template factories, parser factory). The name is used for the `{Name}PercentMatch` telemetry event
 5. Add a real G-code fixture under `Slic3rPostProcessingUploaderUnitTests/TestData/{SlicerName}/`
 6. Add data-driven parser-factory, parsing, and snapshot coverage for every fixture in that folder
+7. Add the slicer to `EmbeddedNoteTemplateTests`, `TemplatePlaceholderCoverageTests`, and the template table in the README
 
 ## Debug Mode
 

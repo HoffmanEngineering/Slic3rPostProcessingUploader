@@ -1,4 +1,5 @@
 # Unreleased
+- The built-in `--default` and `--full` note templates now live as plain text files under `Slic3rPostProcessingUploader/Templates/{Slicer}/` (embedded into the executable at build time) instead of C# classes, so they can be read, copied, and improved without touching code. Rendered notes are unchanged
 - Added `--dry-run`: parses the G-code and prints the rendered note, key parsed fields, and the DTO JSON without uploading or opening a browser. Handy for checking a custom `--template`. With `--debug <path>` the DTO JSON goes to `<path>/slic3r-dto.json` instead of the console
 - A successful upload whose response body is empty or not JSON is now reported as `3dprintlog.com returned an unexpected response.` (with the report-an-issue hint) instead of a generic crash report
 - Errors that happen before parsing starts (unknown option, unwritable debug folder) now print the `3D Print Log Uploader` header first, so it is clear which program is reporting the error

@@ -4,7 +4,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.BambuStudio
     {
         protected override string SlicerName => "BambuStudioSlicer";
         protected override string SlicerVersionPattern => @"; BambuStudio (.+)\s";
-        protected override INoteTemplate CreateDefaultTemplate() => new BambuStudioDefaultNoteTemplate();
+        protected override INoteTemplate CreateDefaultTemplate() => EmbeddedNoteTemplate.Default("BambuStudio");
         protected internal override ReadOnlySpan<char> SettingSeparators => "=:";
         protected override string FilamentLengthKey => "total filament length [mm]";
         protected override string FilamentWeightKey => "total filament weight [g]";
