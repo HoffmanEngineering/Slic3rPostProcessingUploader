@@ -13,6 +13,9 @@ TelemetryService? telemetry = null;
 ConsoleOutput output = ConsoleOutput.ForConsole(debugFile: null, verbose: false);
 StreamWriter? debugFile = null;
 int exitCode = 0;
+// Errors thrown before the header is printed (bad arguments, unwritable debug folder) would otherwise leave the
+// user looking at a bare error with no indication of which program produced it.
+bool headerShown = false;
 
 // Total end-to-end wall time, reported in the UploadResult event so real user-experienced latency
 // (including the telemetry/HTTP timeouts below) is visible, not just the time spent parsing.
@@ -60,6 +63,7 @@ try
     output = ConsoleOutput.ForConsole(debugFile, verbose: debugFile != null);
 
     output.Header(new VersionService().GetVersion());
+    headerShown = true;
     if (!string.IsNullOrEmpty(arguments.DebugPath))
     {
         output.Info($"Debug output: {arguments.DebugPath}");
@@ -121,6 +125,11 @@ try
 }
 catch (Exception e)
 {
+    if (!headerShown)
+    {
+        output.Header(new VersionService().GetVersion());
+    }
+
     output.ReportException(e);
     telemetry?.TrackException(e, "Main");
     exitCode = 1;
