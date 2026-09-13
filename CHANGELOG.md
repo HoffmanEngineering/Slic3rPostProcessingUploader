@@ -1,4 +1,5 @@
 # Unreleased
+- Added `--dry-run`: parses the G-code and prints the rendered note, key parsed fields, and the DTO JSON without uploading or opening a browser. Handy for checking a custom `--template`. With `--debug <path>` the DTO JSON goes to `<path>/slic3r-dto.json` instead of the console
 - A successful upload whose response body is empty or not JSON is now reported as `3dprintlog.com returned an unexpected response.` (with the report-an-issue hint) instead of a generic crash report
 - Errors that happen before parsing starts (unknown option, unwritable debug folder) now print the `3D Print Log Uploader` header first, so it is clear which program is reporting the error
 - Bounded the worst-case delay before the process exits: the telemetry flush timeout dropped from 10s to 2s (and now also flushes the logger pipeline, not just the tracer), and the upload `HttpClient` now has a 20s timeout instead of the 100s default

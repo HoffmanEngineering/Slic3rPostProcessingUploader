@@ -118,6 +118,41 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
 
         #endregion
 
+        #region Dry Run Flag Tests
+
+        [TestMethod]
+        public void Constructor_WithoutDryRunFlag_DryRunIsFalse()
+        {
+            var parser = new ArgumentParser(["input.gcode"]);
+            Assert.IsFalse(parser.DryRun);
+        }
+
+        [TestMethod]
+        public void Constructor_WithDryRunFlag_SetsDryRun()
+        {
+            var parser = new ArgumentParser(["--dry-run", "input.gcode"]);
+            Assert.IsTrue(parser.DryRun);
+            Assert.AreEqual("input.gcode", parser.InputFile);
+        }
+
+        [TestMethod]
+        public void Constructor_WithDryRunAndTemplate_SetsBoth()
+        {
+            var parser = new ArgumentParser(["--dry-run", "--template", "my.txt", "input.gcode"]);
+            Assert.IsTrue(parser.DryRun);
+            Assert.AreEqual("my.txt", parser.NoteTemplatePath);
+        }
+
+        [TestMethod]
+        public void Constructor_WithDryRunAsLastArgument_InputFileIsNull()
+        {
+            var parser = new ArgumentParser(["--dry-run"]);
+            Assert.IsTrue(parser.DryRun);
+            Assert.IsNull(parser.InputFile);
+        }
+
+        #endregion
+
         #region Debug Flag Tests
 
         [TestMethod]

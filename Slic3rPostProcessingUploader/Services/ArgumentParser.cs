@@ -17,6 +17,11 @@ namespace Slic3rPostProcessingUploader.Services
 
         public bool DisableTelemetry { get; private set; }
 
+        /// <summary>
+        /// Parse and print the rendered note and DTO, but do not upload or open a browser.
+        /// </summary>
+        public bool DryRun { get; private set; }
+
         public bool DisplayHelp { get; private set; }
 
         public bool DisplayVersion { get; private set; }
@@ -119,6 +124,10 @@ namespace Slic3rPostProcessingUploader.Services
                 {
                     this.DisableTelemetry = true;
                 }
+                else if (args[i] == "--dry-run")
+                {
+                    this.DryRun = true;
+                }
                 else if (args[i] == "--help" || args[i] == "-h")
                 {
                     this.DisplayHelp = true;
@@ -155,6 +164,7 @@ namespace Slic3rPostProcessingUploader.Services
             Console.WriteLine("--version, -v: Display the version number.");
             Console.WriteLine("--local-dev: Use the local development environment");
             Console.WriteLine("--debug <path>: Save debug information to the specified path");
+            Console.WriteLine("--dry-run: Parse the G-code and print the rendered note, key parsed fields, and the DTO JSON to the console without uploading to 3dprintlog.com or opening a browser. Useful for checking a custom --template.");
             Console.WriteLine("--opt-out-telemetry: Disable telemetry tracking. To help improve the plugin, we track slicer and plugin versions, as well as log errors that are thrown. No personal data is collected.");
             Console.WriteLine();
             Console.WriteLine("Note Template Options:");
@@ -163,6 +173,7 @@ namespace Slic3rPostProcessingUploader.Services
             Console.WriteLine("  --template <path>: Use a custom note template. Absolute paths work better. See README for more details on syntax");
             Console.WriteLine();
             Console.WriteLine("Example: Slic3rPostProcessingUploader --default --debug C:\\debug\\");
+            Console.WriteLine("Example: Slic3rPostProcessingUploader --dry-run --template C:\\templates\\my.txt C:\\prints\\benchy.gcode");
             Console.WriteLine();
         }
     }

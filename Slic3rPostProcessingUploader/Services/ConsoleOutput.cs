@@ -51,6 +51,11 @@ internal class ConsoleOutput
 
     public void Info(string message) => WriteLine($"  {_arrow} {message}", null);
 
+    /// <summary>
+    /// Writes text verbatim (no indent, no glyph, no color). Used for multi-line payloads such as a rendered note.
+    /// </summary>
+    public void Raw(string text) => WriteLine(text, null);
+
     public void Warn(string message) => WriteLine($"  {_warn} {message}", ConsoleColor.Yellow);
 
     public void Error(string message, string? hint = null)
