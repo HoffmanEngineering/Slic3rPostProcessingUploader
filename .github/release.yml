@@ -1,0 +1,26 @@
+# Groups the PRs that `gh release create --generate-notes` lists on a Release, by label.
+# A PR with no matching label lands under "Other Changes".
+changelog:
+  exclude:
+    labels:
+      - duplicate
+      - invalid
+      - wontfix
+  categories:
+    - title: New Features
+      labels:
+        - enhancement
+    - title: Bug Fixes
+      labels:
+        - bug
+    - title: Documentation
+      labels:
+        - documentation
+    - title: Dependencies
+      labels:
+        - dependencies
+        - github_actions
+        - .NET
+    - title: Other Changes
+      labels:
+        - "*"

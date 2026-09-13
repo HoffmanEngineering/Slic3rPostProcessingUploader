@@ -7,11 +7,13 @@
     <Nullable>enable</Nullable>
     <WarningsAsErrors>nullable</WarningsAsErrors>
     <InvariantGlobalization>true</InvariantGlobalization>
-	<Version>1.1.2</Version>
+	<!-- Release builds pass -p:Version=<tag without the v> (see .github/workflows/release.yml), which overrides this
+	     as a global property and also drives AssemblyVersion, FileVersion and InformationalVersion. The placeholder
+	     makes any binary that was not built from a tag say so in its own version output. -->
+	<Version>0.0.0-dev</Version>
     <PublishSingleFile>true</PublishSingleFile>
     <PublishAot>true</PublishAot>
 	<RuntimeIdentifiers>win-x64;osx-x64;osx-arm64;linux-x64</RuntimeIdentifiers>
-	<FileVersion>1.1.2</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
