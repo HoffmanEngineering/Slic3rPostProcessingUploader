@@ -1,3 +1,4 @@
+using Slic3rPostProcessingUploader.Services;
 using Slic3rPostProcessingUploader.Services.Parsers;
 using Slic3rPostProcessingUploader.Services.Parsers.OrcaSlicer;
 using Snapshooter.MSTest;
@@ -40,7 +41,7 @@ public sealed class CuraSettingDtoJsonTests
     public void ToJSON_ForAParsedFixture_MatchesTheWireFormatSnapshot()
     {
         var gcode = TestData.Load(Path.Combine("OrcaSlicer", "orcaslicer-2.2.0-rc-calibration-cube.gcode"));
-        var dto = new OrcaParser(new OrcaDefaultNoteTemplate().getNoteTemplate()).ParseGcode(gcode);
+        var dto = new OrcaParser(EmbeddedNoteTemplate.Default("OrcaSlicer").getNoteTemplate()).ParseGcode(gcode);
         dto.PluginVersion = "1.1.2.0";
         dto.settings.file_name = "orcaslicer-2.2.0-rc-calibration-cube.gcode";
         dto.settings.print_name = "Calibration Cube";

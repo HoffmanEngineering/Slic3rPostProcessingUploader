@@ -1,3 +1,4 @@
+using Slic3rPostProcessingUploader.Services;
 using Slic3rPostProcessingUploader.Services.Parsers.PrusaSlicer;
 using Snapshooter.MSTest;
 
@@ -53,8 +54,8 @@ public sealed class PrusaParserTests
     public void EveryTemplatePlaceholderShouldResolveAgainstRealGcode(string templateName, string slicerVersion)
     {
         string template = templateName == "Default"
-            ? new PrusaDefaultNoteTemplate().getNoteTemplate()
-            : new PrusaFullNoteTemplate().getNoteTemplate();
+            ? EmbeddedNoteTemplate.Default("PrusaSlicer").getNoteTemplate()
+            : EmbeddedNoteTemplate.Full("PrusaSlicer").getNoteTemplate();
         string gcode = slicerVersion == "PrusaSlicer2"
             ? PrusaSlicer2Cube
             : PrusaSlicer3Cube;

@@ -4,6 +4,12 @@
 * text=auto
 
 ###############################################################################
+# Built-in note templates are embedded as-is, so keep them LF on every OS to
+# stop snapshot tests churning between Windows and Linux checkouts.
+###############################################################################
+Slic3rPostProcessingUploader/Templates/**/*.txt text eol=lf
+
+###############################################################################
 # Set default behavior for command prompt diff.
 #
 # This is need for earlier builds of msysgit that does not have it on by

@@ -24,11 +24,11 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         /// </summary>
         private static readonly SlicerRegistration[] Slicers =
         [
-            new("Orca", OrcaParser.IsOrcaSlicer, () => new OrcaDefaultNoteTemplate(), () => new OrcaFullNoteTemplate(), t => new OrcaParser(t)),
-            new("Prusa", PrusaParser.IsPrusaSlicer, () => new PrusaDefaultNoteTemplate(), () => new PrusaFullNoteTemplate(), t => new PrusaParser(t)),
-            new("FLSun", FLSunParser.IsFLSunSlicer, () => new FLSunDefaultNoteTemplate(), () => new FLSunFullNoteTemplate(), t => new FLSunParser(t)),
-            new("BambuStudio", BambuStudioParser.IsBambuStudio, () => new BambuStudioDefaultNoteTemplate(), () => new BambuStudioFullNoteTemplate(), t => new BambuStudioParser(t)),
-            new("AnycubicSlicerNext", AnycubicSlicerNextParser.IsAnycubicSlicerNext, () => new AnycubicSlicerNextDefaultNoteTemplate(), () => new AnycubicSlicerNextFullNoteTemplate(), t => new AnycubicSlicerNextParser(t)),
+            new("Orca", OrcaParser.IsOrcaSlicer, () => EmbeddedNoteTemplate.Default("OrcaSlicer"), () => EmbeddedNoteTemplate.Full("OrcaSlicer"), t => new OrcaParser(t)),
+            new("Prusa", PrusaParser.IsPrusaSlicer, () => EmbeddedNoteTemplate.Default("PrusaSlicer"), () => EmbeddedNoteTemplate.Full("PrusaSlicer"), t => new PrusaParser(t)),
+            new("FLSun", FLSunParser.IsFLSunSlicer, () => EmbeddedNoteTemplate.Default("FLSunSlicer"), () => EmbeddedNoteTemplate.Full("FLSunSlicer"), t => new FLSunParser(t)),
+            new("BambuStudio", BambuStudioParser.IsBambuStudio, () => EmbeddedNoteTemplate.Default("BambuStudio"), () => EmbeddedNoteTemplate.Full("BambuStudio"), t => new BambuStudioParser(t)),
+            new("AnycubicSlicerNext", AnycubicSlicerNextParser.IsAnycubicSlicerNext, () => EmbeddedNoteTemplate.Default("AnycubicSlicerNext"), () => EmbeddedNoteTemplate.Full("AnycubicSlicerNext"), t => new AnycubicSlicerNextParser(t)),
         ];
 
         public static IGcodeParser GetParser(ArgumentParser arguments, TelemetryService telemetry, ConsoleOutput output, string gcode)

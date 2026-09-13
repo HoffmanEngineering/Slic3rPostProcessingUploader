@@ -19,4 +19,19 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Built-in note templates, loaded by EmbeddedNoteTemplate. LogicalName is spelled out so the resource name is
+         the same on every OS (%(RecursiveDir) would use a backslash on Windows). -->
+    <EmbeddedResource Include="Templates/OrcaSlicer/default.txt" LogicalName="Templates/OrcaSlicer/default.txt" />
+    <EmbeddedResource Include="Templates/OrcaSlicer/full.txt" LogicalName="Templates/OrcaSlicer/full.txt" />
+    <EmbeddedResource Include="Templates/PrusaSlicer/default.txt" LogicalName="Templates/PrusaSlicer/default.txt" />
+    <EmbeddedResource Include="Templates/PrusaSlicer/full.txt" LogicalName="Templates/PrusaSlicer/full.txt" />
+    <EmbeddedResource Include="Templates/BambuStudio/default.txt" LogicalName="Templates/BambuStudio/default.txt" />
+    <EmbeddedResource Include="Templates/BambuStudio/full.txt" LogicalName="Templates/BambuStudio/full.txt" />
+    <EmbeddedResource Include="Templates/FLSunSlicer/default.txt" LogicalName="Templates/FLSunSlicer/default.txt" />
+    <EmbeddedResource Include="Templates/FLSunSlicer/full.txt" LogicalName="Templates/FLSunSlicer/full.txt" />
+    <EmbeddedResource Include="Templates/AnycubicSlicerNext/default.txt" LogicalName="Templates/AnycubicSlicerNext/default.txt" />
+    <EmbeddedResource Include="Templates/AnycubicSlicerNext/full.txt" LogicalName="Templates/AnycubicSlicerNext/full.txt" />
+  </ItemGroup>
+
 </Project>

@@ -125,6 +125,16 @@ The color name is derived from the slicer's `filament_colour` setting, so you ca
 
 If the provided `default` or `full` templates are not to your liking, you can create custom note templates by passing in the path to a text file containing the template. These can look for specific settings in the gcode file, and pull out the data.
 
+The built-in templates are plain text files using the same syntax, so they make good starting points for a custom template (copy one, edit it, and pass it with `--template`). Improvements to them are welcome as pull requests:
+
+| Slicer | Default | Full |
+| --- | --- | --- |
+| OrcaSlicer | [default.txt](Slic3rPostProcessingUploader/Templates/OrcaSlicer/default.txt) | [full.txt](Slic3rPostProcessingUploader/Templates/OrcaSlicer/full.txt) |
+| PrusaSlicer | [default.txt](Slic3rPostProcessingUploader/Templates/PrusaSlicer/default.txt) | [full.txt](Slic3rPostProcessingUploader/Templates/PrusaSlicer/full.txt) |
+| Bambu Studio | [default.txt](Slic3rPostProcessingUploader/Templates/BambuStudio/default.txt) | [full.txt](Slic3rPostProcessingUploader/Templates/BambuStudio/full.txt) |
+| FLSun Slicer | [default.txt](Slic3rPostProcessingUploader/Templates/FLSunSlicer/default.txt) | [full.txt](Slic3rPostProcessingUploader/Templates/FLSunSlicer/full.txt) |
+| Anycubic Slicer Next | [default.txt](Slic3rPostProcessingUploader/Templates/AnycubicSlicerNext/default.txt) | [full.txt](Slic3rPostProcessingUploader/Templates/AnycubicSlicerNext/full.txt) |
+
 Example:
 `Slic3rPostProcessingUploader --template "C:\tmp\my-custom-template.txt"`
 
