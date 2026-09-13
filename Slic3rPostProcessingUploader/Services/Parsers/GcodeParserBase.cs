@@ -353,6 +353,15 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
                 return 0;
             }
 
+            // Every supported slicer writes the density the user configured for the loaded filament(s), so prefer
+            // that over guessing from the material name. Multi-filament prints write a comma-separated list; the
+            // first slot is used here since this path only runs when there is a single combined usage figure.
+            if (double.TryParse(settings.Get("filament_density").Split(',')[0], out var filamentDensity) && filamentDensity > 0)
+            {
+                return CalculateWeightInMg(filamentDensity, filamentUsageLengthInMM, filamentDiameter);
+            }
+
+            // Last-resort fallback for gcode that has no filament_density: a small table of common materials.
             if (filamentType.Contains("PLA"))
             {
                 return CalculateWeightInMg(MaterialDensities.Materials.PLA, filamentUsageLengthInMM, filamentDiameter);
