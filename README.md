@@ -68,6 +68,27 @@ Mac/Linux:
 
 `--template <path>`: Use a custom note template. Absolute paths work better. See README for more details on syntax
 
+## Console Output & Troubleshooting
+
+A normal run prints a short progress summary and then opens your browser:
+
+```
+3D Print Log Uploader v1.1.2
+  ✓ Detected OrcaSlicer 2.3.0
+  ✓ Parsed benchy.gcode (default template, 12 ms)
+  ✓ Uploaded print settings to 3dprintlog.com
+  → Opening https://www.3dprintlog.com/prints/new/cura?...
+```
+
+If something goes wrong, the uploader prints what happened and what to do about it, keeps the console window open for 30 seconds (or until a key is pressed) so the message can be read, and exits with code `1` so the slicer can report the failure:
+
+```
+  ✗ Could not reach 3dprintlog.com.
+    Check your internet connection and try again.
+```
+
+Stack traces and raw API responses are only shown on screen when running with `--debug <path>`; they are always written to `slic3r-debug.txt` in the debug folder.
+
 ## Example
 
 In your Slicer's Post Processing text box, input:

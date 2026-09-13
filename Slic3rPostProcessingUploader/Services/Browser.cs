@@ -10,6 +10,13 @@ namespace Slic3rPostProcessingUploader.Services
 {
     internal class Browser : IBrowser
     {
+        private readonly ConsoleOutput _output;
+
+        public Browser(ConsoleOutput output)
+        {
+            _output = output;
+        }
+
         public void Open(string url)
         {
             try
@@ -19,7 +26,7 @@ namespace Slic3rPostProcessingUploader.Services
             catch (Exception ex)
             {
                 // hack because of this: https://github.com/dotnet/corefx/issues/10361
-                Console.WriteLine($"Process.Start failed, trying platform-specific fallback: {ex.Message}");
+                _output.Debug($"Process.Start failed, trying platform-specific fallback: {ex.Message}");
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     url = url.Replace("&", "^&");
