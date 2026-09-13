@@ -76,6 +76,16 @@ Once you slice your object and export the `.gcode` file, this plugin will run an
 
 If your slicer embeds thumbnails in the G-code, the highest resolution one up to 720p (1280x720) is used as the print image. PNG and JPG thumbnails are supported; QOI thumbnails are ignored. To get a sharper image, add a larger size (e.g. `300x300`) to your printer's thumbnail settings in the slicer.
 
+### Multi-Color Prints
+
+For multi-filament prints (OrcaSlicer, Bambu Studio, Anycubic Slicer Next), each filament usage entry is sent with a note describing the slicer slot it came from, its basic color, and its material, for example:
+
+- `Slot 1 · Red (#E72F1D) · PLA`
+- `Slot 2 · Black (#080A0D) · PLA`
+- `Slot 4 · Blue (#0078BF) · PETG`
+
+The color name is derived from the slicer's `filament_colour` setting, so you can match each entry to the right spool on 3D Print Log even when the printer has filaments loaded in a different order than the slicer. Slots with no usage are omitted.
+
 ## Note Templates
 
 If the provided `default` or `full` templates are not to your liking, you can create custom note templates by passing in the path to a text file containing the template. These can look for specific settings in the gcode file, and pull out the data.

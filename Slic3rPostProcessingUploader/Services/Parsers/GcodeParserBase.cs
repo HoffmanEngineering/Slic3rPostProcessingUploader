@@ -268,6 +268,10 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
                                              .Select(x => double.Parse(x.Trim()))
                                              .ToList();
 
+            // Colours and types are per-slot lists aligned with the usage list. Slicers separate them with ';'.
+            var colours = SplitFilamentList(settings.Get("filament_colour"));
+            var types = SplitFilamentList(settings.Get("filament_type"));
+
             for (int i = 0; i < usage.Count; i++)
             {
                 if (usage[i] == 0)
@@ -280,7 +284,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
                     EstimatedSource = PrintFilamentSourceMeasurement.Length,
                     EstimatedLengthInM = Math.Round(usage[i] / 1000, 3),
                     Id = null,
-                    Notes = string.Empty,
+                    Notes = DescribeFilamentSlot(i, colours.ElementAtOrDefault(i), types.ElementAtOrDefault(i)),
                     Source = PrintFilamentSourceMeasurement.Length,
                     Filament = new FilamentSummary
                     {
@@ -293,6 +297,34 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
             }
 
             return filament;
+        }
+
+        private static List<string> SplitFilamentList(string value)
+        {
+            return value.Split([';', ','], StringSplitOptions.TrimEntries)
+                        .ToList();
+        }
+
+        /// <summary>
+        /// Builds a note like "Slot 1 · Red (#E72F1D) · PLA" so the user can tell which spool each usage entry belongs to,
+        /// even when the printer has the filaments loaded in a different order than the slicer.
+        /// </summary>
+        protected static string DescribeFilamentSlot(int index, string? colour, string? type)
+        {
+            var parts = new List<string> { $"Slot {index + 1}" };
+
+            if (!string.IsNullOrWhiteSpace(colour))
+            {
+                var name = FilamentColor.Describe(colour);
+                parts.Add(name is null ? colour : $"{name} ({colour.ToUpperInvariant()})");
+            }
+
+            if (!string.IsNullOrWhiteSpace(type))
+            {
+                parts.Add(type);
+            }
+
+            return string.Join(" · ", parts);
         }
 
         public double? EstimateFilamentUsageInMg(GcodeSettings settings)
