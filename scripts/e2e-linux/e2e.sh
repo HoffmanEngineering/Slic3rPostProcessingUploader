@@ -24,7 +24,7 @@ shot() { STEP=$((STEP + 1)); import -display :99 -window root "$OUT/$(printf '%0
 fail() { log "FAIL: $*"; shot "fail"; exit 1; }
 click() { xdotool mousemove "$1" "$2" click "${3:-1}"; sleep "${4:-2}"; }
 wclick() { # wclick <window title regex> <x> <y> [sleep] — coordinates relative to that window's client area
-    local w; w=$(xdotool search --name "$1" | head -1); [ -n "$w" ] || fail "no window '$1' to click in"
+    local w; w=$(xdotool search --name "$1" 2>/dev/null | head -1 || true); [ -n "$w" ] || fail "no window '$1' to click in"
     xdotool mousemove --window "$w" "$2" "$3" click 1; sleep "${4:-2}"
 }
 wait_window() { # wait_window <title regex> [timeout s]
@@ -41,20 +41,35 @@ wait_gone() { # wait_gone <title regex> [timeout s]
         sleep 1
     done
 }
-launch_orca() {
-    ( cd /work/squashfs-root && ./AppRun >"$OUT/orca-$1.log" 2>&1 ) &
+launch_orca() { # launch_orca <log name> [model file to open]
+    ( cd /work/squashfs-root && ./AppRun ${2:-} >"$OUT/orca-$1.log" 2>&1 ) &
     ORCA_PID=$!
-    # First-run SSL certificate question; "Yes" is the default.
-    wait_window "OrcaSlicer" 90
-    sleep 8
-    if xdotool search --name "^OrcaSlicer$" >/dev/null && ! xdotool search --name "Untitled" >/dev/null; then
-        shot "ssl-question"; wclick "^OrcaSlicer$" 635 111
-    fi
-    wait_window "Untitled - OrcaSlicer" 120
+    # SSL certificate question ("use system SSL certificate … continue?"): a modal titled just "OrcaSlicer".
+    # It can show up before or alongside the main window, so look for it by title rather than by order.
+    local deadline=$(( $(date +%s) + 90 )) d
+    while :; do
+        d=$(xdotool search --name "^OrcaSlicer$" 2>/dev/null | head -1 || true)
+        if [ -n "$d" ]; then sleep 2; shot "ssl-question"; xdotool mousemove --window "$d" 635 111 click 1; sleep 2; break; fi
+        [ "$(date +%s)" -lt "$deadline" ] || break
+        sleep 1
+    done
+    wait_window " - OrcaSlicer$" 120   # "Untitled - OrcaSlicer" or "<model> - OrcaSlicer"
     sleep 6
     # Pin the main window where the absolute coordinates below expect it.
-    local m; m=$(xdotool search --name "Untitled - OrcaSlicer" | head -1)
+    local m; m=$(xdotool search --name " - OrcaSlicer$" | head -1)
     xdotool windowmove --sync "$m" 200 100; xdotool windowsize --sync "$m" 1200 800; sleep 2
+}
+write_cube_stl() {
+    local s=20
+    echo "solid cube"
+    tri() { echo " facet normal 0 0 0"; echo "  outer loop"; for v in "$@"; do echo "   vertex $v"; done; echo "  endloop"; echo " endfacet"; }
+    tri "0 0 0" "$s 0 0" "$s $s 0";   tri "0 0 0" "$s $s 0" "0 $s 0"      # bottom
+    tri "0 0 $s" "$s $s $s" "$s 0 $s"; tri "0 0 $s" "0 $s $s" "$s $s $s"   # top
+    tri "0 0 0" "0 $s 0" "0 $s $s";   tri "0 0 0" "0 $s $s" "0 0 $s"      # left
+    tri "$s 0 0" "$s $s $s" "$s $s 0"; tri "$s 0 0" "$s 0 $s" "$s $s $s"   # right
+    tri "0 0 0" "0 0 $s" "$s 0 $s";   tri "0 0 0" "$s 0 $s" "$s 0 0"      # front
+    tri "0 $s 0" "$s $s $s" "0 $s $s"; tri "0 $s 0" "$s $s 0" "$s $s $s"   # back
+    echo "endsolid cube"
 }
 stop_orca() {
     pkill -x orca-slicer 2>/dev/null || true
@@ -122,16 +137,13 @@ cat >"$UPLOADER" <<'STUB'
 STUB
 chmod +x "$UPLOADER"
 
-launch_orca "with-overrides"
+# A 20 mm cube as ASCII STL, opened straight from the command line (more reliable than the context menu).
+write_cube_stl >/tmp/cube.stl
+launch_orca "with-overrides" /tmp/cube.stl
 click 330 155 1 4                   # Prepare tab
 click 246 458 1 3                   # process preset dropdown
 shot "preset-dropdown"
-xdotool key Escape; sleep 1
-click 1030 540 3 2                  # right-click plate
-click 1108 731 1 1                  # Add Primitive ▸
-xdotool key Right; sleep 1; xdotool key Return; sleep 4   # Cube
-click 246 458 1 3                   # dropdown again, pick "0.20mm Standard @MyKlipper - 3DPrintLog"
-click 410 633 1 4
+click 410 633 1 4                   # "0.20mm Standard @MyKlipper - 3DPrintLog" (first user preset)
 shot "cube-ready"
 click 1102 155 1 25                 # Slice plate
 shot "sliced"

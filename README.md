@@ -125,7 +125,33 @@ Instead of manually adding the uploader to each slicer profile, run the setup wi
 ./Slic3rPostProcessingUploader install
 ```
 
-The wizard will detect installed slicers, let you choose which ones to configure, guide you through flag selection, and inject the uploader path into all process profiles automatically.
+The wizard will detect installed slicers, let you choose which ones to configure, guide you through flag selection, and inject the uploader path into all process profiles automatically:
+
+```
+3D Print Log Uploader - Setup Wizard
+=====================================
+Scanning for supported slicers...
+
+  Found: OrcaSlicer           Not installed | 44 process profiles found
+  Snapmaker Orca             (not detected — skipped)
+  AnycubicSlicer Next        (not detected — skipped)
+
+--- OrcaSlicer ---
+Install to OrcaSlicer? [Y/n]:
+  Note template:
+    1) Default (recommended)
+    2) Full
+  Choice [1]:
+  Opt out of telemetry? [y/N]:
+  Additional flags (leave blank for none):
+  Done: 44 created, 0 updated, 0 skipped.
+
+Setup complete!
+```
+
+It does not touch the slicer's built-in profiles. For every process profile the slicer offers, it creates a user preset named `<profile> - 3DPrintLog` that inherits the original and adds the uploader as a post-processing script. Restart the slicer and pick one of those presets to have each export logged:
+
+![OrcaSlicer process dropdown listing the "- 3DPrintLog" user presets](docs/images/wizard-process-presets.png)
 
 ### Wizard Options
 
@@ -143,6 +169,8 @@ Slic3rPostProcessingUploader uninstall --dry-run
 ### Important: Add Your Printers First
 
 For OrcaSlicer-family slicers, vendor-specific process profiles (e.g. TwoTrees, Bambu) are only downloaded when you add a printer through the slicer's setup wizard. **Add all your printers in the slicer before running the install wizard**, otherwise those vendor profiles won't be picked up.
+
+![OrcaSlicer's printer selection page](docs/images/orca-printer-selection.png)
 
 If you add a new printer after running the wizard, simply run `install` again — it will detect the new profiles and update them without touching the ones already configured.
 
