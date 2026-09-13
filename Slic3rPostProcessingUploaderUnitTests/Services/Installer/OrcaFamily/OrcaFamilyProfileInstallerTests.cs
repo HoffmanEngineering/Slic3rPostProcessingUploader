@@ -706,5 +706,54 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
             }
             finally { Directory.Delete(root, recursive: true); }
         }
+        // ---- the executable may have been renamed: our own path still identifies our entry ----
+
+        [TestMethod]
+        public void Install_SkipsOwnedOverride_WhenExecutableIsRenamed()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer", ownedBySuffix: true,
+                existingPostProcess: "/opt/uploader --full");
+            var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
+            try
+            {
+                var result = new TestOrcaInstaller(configRootOverride: root).Install("/opt/uploader", "--full", dryRun: false);
+
+                Assert.AreEqual(1, result.Skipped);
+                Assert.AreEqual(0, result.Updated);
+                Assert.AreEqual(1, ReadPostProcess(overridePath).Count, "entry must not be duplicated");
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void Uninstall_RemovesOwnedOverride_WhenExecutableIsRenamed()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer", ownedBySuffix: true,
+                existingPostProcess: "\"C:\\Tools\\uploader.exe\" --full");
+            var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
+            try
+            {
+                var result = new TestOrcaInstaller(configRootOverride: root).Uninstall("C:\\Tools\\uploader.exe", dryRun: false);
+
+                Assert.AreEqual(1, result.RemovedFiles);
+                Assert.IsFalse(File.Exists(overridePath));
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
+        public void GetInstallStatus_CountsOwnedOverride_WhenExecutableIsRenamed()
+        {
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer", ownedBySuffix: true,
+                existingPostProcess: "/opt/uploader --default");
+            try
+            {
+                var status = new TestOrcaInstaller(configRootOverride: root).GetInstallStatus("/opt/uploader");
+
+                Assert.IsTrue(status.IsInstalled);
+                Assert.AreEqual("--default", status.InstalledFlags);
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
     }
 }

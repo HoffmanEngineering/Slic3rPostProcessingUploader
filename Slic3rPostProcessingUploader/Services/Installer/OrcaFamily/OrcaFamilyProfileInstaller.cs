@@ -48,7 +48,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
 
                     var ourEntry = postProcess
                         .Select(e => e?.GetValue<string>())
-                        .FirstOrDefault(e => e?.Contains("Slic3rPostProcessingUploader") == true);
+                        .FirstOrDefault(e => e != null && IsOurEntry(e, executablePath));
 
                     if (ourEntry != null)
                     {
@@ -81,7 +81,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
             foreach (var accountDir in userAccountDirs)
             {
                 var processDir = Path.Combine(accountDir, "process");
-                var handMade = FindHandMadeUploaderProfiles(processDir, ref unreadable);
+                var handMade = FindHandMadeUploaderProfiles(processDir, executablePath, ref unreadable);
 
                 // A hand-made profile that already runs the uploader is left in charge of its parent system profile;
                 // creating our own override next to it would only show up as a duplicate in the slicer's dropdown.
@@ -120,7 +120,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
                         }
 
                         var postProcess = node["post_process"]?.AsArray();
-                        int ourIndex = IndexOfOurEntry(postProcess);
+                        int ourIndex = IndexOfOurEntry(postProcess, executablePath);
 
                         if (ourIndex >= 0 && postProcess![ourIndex]!.GetValue<string>() == scriptEntry)
                         {
@@ -176,7 +176,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
         /// <summary>A user process profile the installer did not create, whose post_process already calls the uploader.</summary>
         private sealed record HandMadeProfile(string FilePath, JsonObject Node, JsonArray PostProcess, int EntryIndex, string Inherits, string ExePath, string? Flags);
 
-        private static List<HandMadeProfile> FindHandMadeUploaderProfiles(string processDir, ref int unreadable)
+        private static List<HandMadeProfile> FindHandMadeUploaderProfiles(string processDir, string executablePath, ref int unreadable)
         {
             var result = new List<HandMadeProfile>();
             if (!Directory.Exists(processDir)) return result;
@@ -193,7 +193,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
                 }
 
                 var postProcess = node["post_process"]?.AsArray();
-                int index = IndexOfOurEntry(postProcess);
+                int index = IndexOfOurEntry(postProcess, executablePath);
                 if (index < 0) continue;
 
                 var inherits = node["inherits"]?.GetValue<string>();
@@ -222,16 +222,23 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
             }
         }
 
-        private static int IndexOfOurEntry(JsonArray? postProcess)
+        private static int IndexOfOurEntry(JsonArray? postProcess, string executablePath)
         {
             if (postProcess == null) return -1;
             for (int i = 0; i < postProcess.Count; i++)
             {
-                if (postProcess[i] is JsonValue value && value.TryGetValue<string>(out var entry) && entry.Contains(UploaderMarker))
+                if (postProcess[i] is JsonValue value && value.TryGetValue<string>(out var entry) && IsOurEntry(entry, executablePath))
                     return i;
             }
             return -1;
         }
+
+        /// <summary>
+        /// An entry is ours when it names this program (by its usual file name, wherever it lives) or points at the
+        /// executable currently being installed, so a renamed copy is still recognised instead of duplicated.
+        /// </summary>
+        private static bool IsOurEntry(string entry, string executablePath) =>
+            entry.Contains(UploaderMarker) || PathMatches(SplitScriptEntry(entry).ExePath, executablePath);
 
         private static bool PathMatches(string a, string b) =>
             string.Equals(a, b, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
@@ -295,7 +302,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
                     }
 
                     var postProcess = node["post_process"]?.AsArray();
-                    if (IndexOfOurEntry(postProcess) < 0) continue;
+                    if (IndexOfOurEntry(postProcess, executablePath) < 0) continue;
 
                     // Only files the installer created are ours to delete or edit; a profile the user built by hand
                     // is reported so they can decide what to do with it.
@@ -307,7 +314,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
 
                     for (int i = postProcess!.Count - 1; i >= 0; i--)
                     {
-                        if (postProcess[i]?.GetValue<string>().Contains(UploaderMarker) == true)
+                        if (postProcess[i]?.GetValue<string>() is { } entry && IsOurEntry(entry, executablePath))
                             postProcess.RemoveAt(i);
                     }
                     if (postProcess.Count == 0)
