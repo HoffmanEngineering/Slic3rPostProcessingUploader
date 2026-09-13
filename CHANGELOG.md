@@ -1,4 +1,5 @@
 # Unreleased
+- Bounded the worst-case delay before the process exits: the telemetry flush timeout dropped from 10s to 2s (and now also flushes the logger pipeline, not just the tracer), and the upload `HttpClient` now has a 20s timeout instead of the 100s default
 - `--help` no longer blocks or throws when stdin/stdout is redirected, and `--help`/`--version` no longer trigger telemetry initialization
 - Unknown CLI flags (e.g. a misspelled `--fulll`) now cause an error instead of being silently ignored; argument errors (bad `--template`/`--debug` usage) are now reported as plain, actionable messages instead of a generic crash report
 - Fixed estimated print times over 24 hours being logged too short: the `d` (days) token in slicer time strings like `1d 6h 12m 5s` was being silently dropped
