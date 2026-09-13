@@ -45,11 +45,18 @@ Templates use `{{setting_name}}` placeholders that get replaced with values from
 
 ## Testing
 
-Uses MSTest with Snapshooter for snapshot testing. Snapshots hash the `settings.Snapshot` field to avoid cross-platform line-ending issues:
+Uses MSTest with Snapshooter for snapshot testing. Real G-code fixtures live under `Slic3rPostProcessingUploaderUnitTests/TestData/{SlicerName}/` and are copied to the test output directory. Use `TestData.Load(relativePath)` for a named fixture and `TestData.EnumerateFixtures(slicerFolder)` for data-driven coverage of every version in a slicer's folder.
+
+Each fixture test must verify that `ParserFactory` selects the expected parser without emitting its unrecognized-slicer warning, then parse and snapshot the result. Use the fixture filename as the snapshot name and hash the `settings.Snapshot` field to avoid cross-platform line-ending issues:
 
 ```csharp
-Snapshot.Match(result, matchOptions => matchOptions.HashField("settings.Snapshot"));
+Snapshot.Match(
+    result,
+    Path.GetFileNameWithoutExtension(fixturePath),
+    matchOptions => matchOptions.HashField("settings.Snapshot"));
 ```
+
+Keep fixtures compact by replacing unused toolpath bodies with a short omission marker while preserving the header, thumbnails, print summary, and trailing configuration. Retain one untrimmed fixture for `GcodeWindowTests`.
 
 ## Adding a New Slicer
 
@@ -57,7 +64,8 @@ Snapshot.Match(result, matchOptions => matchOptions.HashField("settings.Snapshot
 2. Implement parser class with `IGcodeParser` interface and static `Is{SlicerName}(string gcode)` detection method
 3. Create `{SlicerName}DefaultNoteTemplate` and `{SlicerName}FullNoteTemplate` classes
 4. Register in `ParserFactory.GetParser()` and add `Build{SlicerName}Parser()` method
-5. Add tests with snapshot verification
+5. Add a real G-code fixture under `Slic3rPostProcessingUploaderUnitTests/TestData/{SlicerName}/`
+6. Add data-driven parser-factory, parsing, and snapshot coverage for every fixture in that folder
 
 ## Debug Mode
 
