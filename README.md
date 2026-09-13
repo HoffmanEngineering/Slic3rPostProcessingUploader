@@ -62,6 +62,10 @@ Mac/Linux:
 
 `--debug <path>`: Save debug information to the specified path. Note that debug mode reads and logs the entire G-code file, so it is slower on large files than a normal run, which only reads the start and end of the file where the slicer writes its settings. For binary G-code the logged file contents are the decoded metadata, not the raw binary.
 
+`--dry-run`: Parse the G-code and print the rendered note, the key parsed fields (slicer, version, print time, filament usage, whether a thumbnail was found), and the DTO JSON to the console, then exit with code 0. Nothing is uploaded to 3dprintlog.com and no browser is opened, so this is the quickest way to check a custom `--template` before using it for real. When combined with `--debug <path>`, the DTO JSON is written to `<path>/slic3r-dto.json` instead of the console. Startup/parse telemetry is still sent (tagged `DryRun=true`) unless `--opt-out-telemetry` is also given; no upload event is sent.
+
+Example: `Slic3rPostProcessingUploader --dry-run --template C:\templates\my.txt C:\prints\benchy.gcode`
+
 `--opt-out-telemetry`: Disable telemetry tracking. To help improve the plugin, we track slicer and plugin versions, as well as log errors that are thrown. No personal data is collected.
 
 ### Note Template Options:

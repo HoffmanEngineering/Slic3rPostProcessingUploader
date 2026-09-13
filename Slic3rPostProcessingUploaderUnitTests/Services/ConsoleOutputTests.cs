@@ -45,6 +45,15 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
         }
 
         [TestMethod]
+        public void Raw_PrintsTextWithoutPrefixAndMirrorsToDebugFile()
+        {
+            Build(withDebugFile: true).Raw("line one\nline two");
+
+            Assert.AreEqual("line one\nline two" + Environment.NewLine, _screen.ToString());
+            Assert.AreEqual("line one\nline two" + Environment.NewLine, _debugFile.ToString());
+        }
+
+        [TestMethod]
         public void Warn_PrintsBangLine()
         {
             Build().Warn("Slicer not recognized");

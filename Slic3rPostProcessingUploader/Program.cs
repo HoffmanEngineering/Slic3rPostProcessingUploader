@@ -53,6 +53,7 @@ try
         { "UseFullTemplate", arguments.UseFullNoteTemplate },
         { "UseCustomTemplate", !string.IsNullOrEmpty(arguments.NoteTemplatePath) },
         { "DebugEnabled", !string.IsNullOrEmpty(arguments.DebugPath) },
+        { "DryRun", arguments.DryRun },
         { "LocalDev", arguments.UseLocalDev },
         { "TelemetryDisabled", arguments.DisableTelemetry }
     });
@@ -113,6 +114,15 @@ try
     });
 
     LogDto(arguments.DebugPath, dto);
+
+    // --dry-run stops here: the note and DTO are shown so template authors can check their output, but nothing
+    // is uploaded and no browser is opened. Startup/CLIFlags/Parse telemetry above is still sent (tagged
+    // DryRun=true in CLIFlags); no UploadResult event is emitted because no upload happens.
+    if (arguments.DryRun)
+    {
+        DryRunReport.Write(output, dto, arguments.DebugPath);
+        return 0;
+    }
 
     using HttpClient httpClient = new() { Timeout = UploadService.UploadTimeout };
     string settingId = await new UploadService(httpClient, telemetry, output)
@@ -203,8 +213,7 @@ void LogDto(string? debugPath, CuraSettingDto dto)
 {
     if (!string.IsNullOrEmpty(debugPath))
     {
-        string dtoFileName = "slic3r-dto.json";
-        string path = Path.Combine(debugPath, dtoFileName);
+        string path = Path.Combine(debugPath, DryRunReport.DtoFileName);
         File.WriteAllText(path, dto.ToJSON());
     }
 }
