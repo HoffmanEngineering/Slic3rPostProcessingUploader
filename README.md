@@ -52,7 +52,7 @@ Mac/Linux:
 
 `--local-dev`: Use the local development environment
 
-`--debug <path>`: Save debug information to the specified path
+`--debug <path>`: Save debug information to the specified path. Note that debug mode reads and logs the entire G-code file, so it is slower on large files than a normal run, which only reads the start and end of the file where the slicer writes its settings.
 
 `--opt-out-telemetry`: Disable telemetry tracking. To help improve the plugin, we track slicer and plugin versions, as well as log errors that are thrown. No personal data is collected.
 

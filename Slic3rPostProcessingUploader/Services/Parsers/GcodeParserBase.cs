@@ -38,20 +38,20 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         protected abstract INoteTemplate CreateDefaultTemplate();
 
         /// <summary>
-        /// The separator pattern used between setting name and value (default: "=").
-        /// Override for slicers that use different separators (e.g., "[=:]" for BambuStudio).
+        /// The characters accepted between setting name and value (default: "=").
+        /// Override for slicers that use different separators (e.g., "=:" for BambuStudio).
         /// </summary>
-        protected virtual string SettingSeparatorPattern => "=";
+        protected virtual ReadOnlySpan<char> SettingSeparators => "=";
 
         /// <summary>
-        /// The key used to find filament length in gcode (default: "filament used \\[mm\\]").
+        /// The key used to find filament length in gcode (default: "filament used [mm]").
         /// </summary>
-        protected virtual string FilamentLengthKey => "filament used \\[mm\\]";
+        protected virtual string FilamentLengthKey => "filament used [mm]";
 
         /// <summary>
-        /// The key used to find filament weight in gcode (default: "filament used \\[g\\]").
+        /// The key used to find filament weight in gcode (default: "filament used [g]").
         /// </summary>
-        protected virtual string FilamentWeightKey => "filament used \\[g\\]";
+        protected virtual string FilamentWeightKey => "filament used [g]";
 
         /// <summary>
         /// Whether this slicer supports multi-filament prints.
@@ -76,22 +76,27 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
             var dto = new CuraSettingDto();
             var settings = new CuraSettings();
 
-            settings.estimated_print_time_seconds = ParseEstimatedPrintTime(gcode);
+            // Slicer metadata only lives at the start and end of the file, so large files are narrowed down to those regions
+            // and the "; key = value" lines are indexed once instead of scanning the file per setting.
+            gcode = GcodeWindow.Trim(gcode);
+            var gcodeSettings = GcodeSettings.Parse(gcode, SettingSeparators);
+
+            settings.estimated_print_time_seconds = ParseEstimatedPrintTime(gcode, gcodeSettings);
 
             if (SupportsMultiFilament)
             {
-                settings.filamentUsage = GetFilamentUsage(gcode);
+                settings.filamentUsage = GetFilamentUsage(gcodeSettings);
                 if (settings.filamentUsage.Count == 0)
                 {
-                    settings.material_used_mg = (int?)EstimateFilamentUsageInMg(gcode);
+                    settings.material_used_mg = (int?)EstimateFilamentUsageInMg(gcodeSettings);
                 }
             }
             else
             {
-                settings.material_used_mg = (int?)EstimateFilamentUsageInMg(gcode);
+                settings.material_used_mg = (int?)EstimateFilamentUsageInMg(gcodeSettings);
             }
 
-            settings.note = RenderNoteTemplate(gcode);
+            settings.note = RenderNoteTemplate(gcodeSettings);
 
             string? snapshot = GetSnapshot(gcode);
             if (snapshot != null)
@@ -109,20 +114,9 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         /// <summary>
         /// The note template will have placeholders that will be replaced with the actual values from the gcode.
         /// </summary>
-        protected string RenderNoteTemplate(string gcode)
+        protected string RenderNoteTemplate(GcodeSettings settings)
         {
-            string template = noteTemplate;
-
-            var matches = TemplatePlaceholderRegex().Matches(template);
-            foreach (Match match in matches)
-            {
-                var placeholder = match.Groups[1].Value;
-                string searchString = "; " + placeholder;
-                var value = ParseSettingAsString(gcode, searchString);
-                template = template.Replace(match.Value, value);
-            }
-
-            return template;
+            return TemplatePlaceholderRegex().Replace(noteTemplate, match => settings.Get(match.Groups[1].Value));
         }
 
         /// <summary>
@@ -133,16 +127,14 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
             int numPlaceholders = 0;
             int numMatches = 0;
 
-            string template = this.noteTemplate;
+            var settings = GcodeSettings.Parse(GcodeWindow.Trim(gcode), SettingSeparators);
 
-            var matches = TemplatePlaceholderRegex().Matches(template);
+            var matches = TemplatePlaceholderRegex().Matches(noteTemplate);
             foreach (Match match in matches)
             {
                 numPlaceholders++;
 
-                var placeholder = match.Groups[1].Value;
-                string searchString = "; " + placeholder;
-                var value = ParseSettingAsString(gcode, searchString);
+                var value = settings.Get(match.Groups[1].Value);
 
                 if (!string.IsNullOrEmpty(value))
                 {
@@ -196,7 +188,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
             return chosen.Payload.Replace("\r\n; ", "").Replace("\n; ", "").Replace(";", "").Trim();
         }
 
-        protected int ParseEstimatedPrintTime(string gcode)
+        protected int ParseEstimatedPrintTime(string gcode, GcodeSettings settings)
         {
             try
             {
@@ -210,7 +202,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
                     }
                 }
 
-                var normalModePrintTimeMatch = ParseSettingAsString(gcode, "; estimated printing time (normal mode)");
+                var normalModePrintTimeMatch = settings.Get("estimated printing time (normal mode)");
                 if (!string.IsNullOrEmpty(normalModePrintTimeMatch))
                 {
                     var time = ParseAsSeconds(normalModePrintTimeMatch);
@@ -220,7 +212,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
                     }
                 }
 
-                var silentMode = ParseSettingAsString(gcode, "; estimated printing time (silent mode)");
+                var silentMode = settings.Get("estimated printing time (silent mode)");
                 if (!string.IsNullOrEmpty(silentMode))
                 {
                     var time = ParseAsSeconds(silentMode);
@@ -261,11 +253,11 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
             return hours * 3600 + minutes * 60 + seconds;
         }
 
-        protected List<PrintFilamentSummaryDto> GetFilamentUsage(string gcode)
+        protected List<PrintFilamentSummaryDto> GetFilamentUsage(GcodeSettings settings)
         {
             List<PrintFilamentSummaryDto> filament = new List<PrintFilamentSummaryDto>();
 
-            string filamentUsed = ParseSettingAsString(gcode, "; " + FilamentLengthKey);
+            string filamentUsed = settings.Get(FilamentLengthKey);
 
             if (string.IsNullOrEmpty(filamentUsed))
             {
@@ -303,27 +295,23 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
             return filament;
         }
 
-        public double? EstimateFilamentUsageInMg(string gcode)
+        public double? EstimateFilamentUsageInMg(GcodeSettings settings)
         {
-            if (string.IsNullOrEmpty(gcode))
-            {
-                return 0;
-            }
-
             // Check to see if the user setup their filament densities, thus we can directly return filament usage.
-            var filamentUsedInGrams = ParseSettingAsNumber(gcode, "; " + FilamentWeightKey);
+            var filamentUsedInGrams = ParseSettingAsNumber(settings, FilamentWeightKey);
             if (filamentUsedInGrams > 0)
             {
                 return filamentUsedInGrams * 1000;
             }
 
-            var filamentType = ParseSettingAsString(gcode, "; filament_type");
+            var filamentType = settings.Get("filament_type");
             // Try and grab the first diameter
-            if (!double.TryParse(ParseSettingAsString(gcode, "; filament_diameter").Split(',')[0], out var filamentDiameter))
+            if (!double.TryParse(settings.Get("filament_diameter").Split(',')[0], out var filamentDiameter))
             {
                 return 0;
             }
-            if (!double.TryParse(ParseSettingAsString(gcode, "; " + FilamentLengthKey), out var filamentUsageLengthInMM))
+
+            if (!double.TryParse(settings.Get(FilamentLengthKey), out var filamentUsageLengthInMM))
             {
                 return 0;
             }
@@ -357,26 +345,10 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
             return Math.Floor(weightInGrams * 1000);
         }
 
-        protected double ParseSettingAsNumber(string gcode, string settingName)
+        protected static double ParseSettingAsNumber(GcodeSettings settings, string settingName)
         {
-            var regex = new Regex(settingName + " " + SettingSeparatorPattern + " (.+)$", RegexOptions.IgnoreCase | RegexOptions.Multiline);
-            var match = regex.Match(gcode);
-            if (match.Success)
-            {
-                return double.Parse(match.Groups[1].Value);
-            }
-            return double.NaN;
-        }
-
-        protected string ParseSettingAsString(string gcode, string settingName)
-        {
-            var regex = new Regex(settingName.Replace("(", "\\(").Replace(")", "\\)") + " " + SettingSeparatorPattern + " (.+)$", RegexOptions.IgnoreCase | RegexOptions.Multiline);
-            var match = regex.Match(gcode);
-            if (match.Success)
-            {
-                return match.Groups[1].Value.Trim();
-            }
-            return string.Empty;
+            var value = settings.Get(settingName);
+            return value.Length > 0 ? double.Parse(value) : double.NaN;
         }
     }
 }
