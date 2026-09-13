@@ -8,7 +8,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
 {
     internal class ParserFactory
     {
-        public static IGcodeParser GetParser(ArgumentParser arguments, TelemetryService telemetry, string gcode)
+        public static IGcodeParser GetParser(ArgumentParser arguments, TelemetryService telemetry, ConsoleOutput output, string gcode)
         {
             SendTemplateMetrics(arguments, telemetry);
 
@@ -38,6 +38,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
             }
             else
             {
+                output.Warn("Slicer not recognized, using the closest matching parser. Some settings may be missing.");
 
                 // If the slicer is not recognized, then try and parse using all of them and see which one matches more closely
                 // This is a fallback mechanism in case the slicer is not recognized

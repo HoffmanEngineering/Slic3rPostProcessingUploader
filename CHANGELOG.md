@@ -1,4 +1,7 @@
 # Unreleased
+- Cleaner console output: a short ✓ progress summary on success, plain-English errors with a suggested fix on failure. Raw HTTP responses and stack traces now only appear on screen with `--debug` (they are still written to `slic3r-debug.txt`)
+- On error the console window now stays open for 30 seconds (or until a key is pressed) and the process exits with code 1 so slicers can report the failure
+- If the browser can't be opened, the 3D Print Log URL is printed so it can be opened manually
 - PrusaSlicer 3.0 support: verified against 3.0.0-alpha11 G-code, which turns `support_material` into an enum and drops `support_material_auto`
 - PrusaSlicer note templates no longer render blank lines for settings that PrusaSlicer stopped writing to G-code (`support_material_auto`, `wipe_tower_x`, `wipe_tower_y`, `wipe_tower_rotation_angle`); the Full template's "Top Contact Z Distance" now reads `support_material_contact_distance`
 - Added PrusaSlicer 2.9.2 and 3.0.0-alpha11 parser test fixtures

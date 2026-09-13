@@ -224,9 +224,8 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
 
                 return 0;
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Console.WriteLine(e.Message);
                 return 0;
             }
         }
