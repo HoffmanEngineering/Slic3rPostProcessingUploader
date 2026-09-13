@@ -366,6 +366,6 @@ FodyWeavers.xsd
 .claude/settings.local.json
 # Git worktrees
 .worktrees/
-
+.claude/worktrees/
 # Local design notes
 docs/superpowers/
