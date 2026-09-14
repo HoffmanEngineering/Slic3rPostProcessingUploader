@@ -94,8 +94,8 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         private string RenderWithRoots(string gcode, params string[] roots)
         {
             var settings = GcodeSettings.Parse(gcode, "=");
-            var placeholder = ModifiedSettingsPlaceholder.WithConfigRoots(() => roots);
-            return placeholder.Render(new ComputedContext(settings, ParseOptions.InMemory(gcode)));
+            var options = new ParseOptions(() => Stream.Null, _ => { }, () => roots);
+            return ModifiedSettingsPlaceholder.Instance.Render(new ComputedContext(settings, options));
         }
 
         private const string TwoChangesGcode =
@@ -162,10 +162,10 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         public void ShouldFallBackToTheFlatListWhenTheConfigRootsCannotBeResolved()
         {
             var settings = GcodeSettings.Parse(TwoChangesGcode, "=");
-            var placeholder = ModifiedSettingsPlaceholder.WithConfigRoots(() => throw new InvalidOperationException("no home"));
             var log = new List<string>();
+            var options = new ParseOptions(() => Stream.Null, log.Add, () => throw new InvalidOperationException("no home"));
 
-            var note = placeholder.Render(new ComputedContext(settings, new ParseOptions(() => Stream.Null, log.Add)));
+            var note = ModifiedSettingsPlaceholder.Instance.Render(new ComputedContext(settings, options));
 
             StringAssert.StartsWith(note, "Changed from \"0.16 High Quality @U1\": sparse_infill_density");
             Assert.IsTrue(log.Any(l => l.Contains("no home")), string.Join("\n", log));
@@ -175,9 +175,9 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         public void ShouldNotTouchTheDiskWhenNothingChanged()
         {
             var settings = GcodeSettings.Parse("; different_settings_to_system = post_process;;\n", "=");
-            var placeholder = ModifiedSettingsPlaceholder.WithConfigRoots(() => throw new InvalidOperationException("must not be called"));
+            var options = new ParseOptions(() => Stream.Null, _ => { }, () => throw new InvalidOperationException("must not be called"));
 
-            Assert.AreEqual(string.Empty, placeholder.Render(new ComputedContext(settings, ParseOptions.InMemory(""))));
+            Assert.AreEqual(string.Empty, ModifiedSettingsPlaceholder.Instance.Render(new ComputedContext(settings, options)));
         }
     }
 }

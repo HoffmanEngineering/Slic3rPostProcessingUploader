@@ -223,9 +223,10 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         public IReadOnlyList<string> GetMissingPlaceholders(string gcode)
         {
             var settings = GcodeSettings.Parse(GcodeWindow.Trim(gcode), SettingSeparators);
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var seen = ComputedPlaceholders.Select(p => p.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var missing = new List<string>();
 
+            // Computed keys start out in `seen`: their provider answers for them, not a settings line.
             foreach (Match match in TemplatePlaceholderRegex().Matches(noteTemplate))
             {
                 var key = match.Groups[1].Value;

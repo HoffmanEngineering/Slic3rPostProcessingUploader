@@ -17,5 +17,6 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
         public GcodeSettings Settings { get; } = settings;
         public Func<Stream> OpenFullGcode => options.OpenFullGcode;
         public Action<string> DebugLog => options.DebugLog;
+        public Func<IEnumerable<string>> ConfigRoots => options.ConfigRoots;
     }
 }

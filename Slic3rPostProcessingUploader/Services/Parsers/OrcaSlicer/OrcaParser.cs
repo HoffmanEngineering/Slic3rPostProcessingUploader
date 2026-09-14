@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Slic3rPostProcessingUploader.Services.Parsers.Computed;
 
 namespace Slic3rPostProcessingUploader.Services.Parsers.OrcaSlicer
 {
@@ -10,6 +11,9 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.OrcaSlicer
         protected override Regex SlicerVersionRegex => VersionRegex();
         protected override INoteTemplate CreateDefaultTemplate() => EmbeddedNoteTemplate.Default("OrcaSlicer");
         protected override bool SupportsMultiFilament => true;
+
+        protected override IReadOnlyList<ComputedPlaceholder> ComputedPlaceholders =>
+            [ModelsPlaceholder.Instance, ModifiedSettingsPlaceholder.Instance];
 
         public static bool IsOrcaSlicer(string gcode)
         {

@@ -1,5 +1,3 @@
-using Slic3rPostProcessingUploader.Services.Installer;
-
 namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
 {
     /// <summary>
@@ -13,13 +11,9 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
     /// </summary>
     internal static class ModifiedSettingsPlaceholder
     {
-        public static readonly ComputedPlaceholder Instance = WithConfigRoots(SlicerInstallerRegistry.OrcaFamilyConfigRoots);
+        public static readonly ComputedPlaceholder Instance = new("modified_settings", Render);
 
-        /// <summary>Builds the placeholder against specific config roots; the roots are only resolved when needed.</summary>
-        public static ComputedPlaceholder WithConfigRoots(Func<IEnumerable<string>> configRoots) =>
-            new("modified_settings", context => Render(context, configRoots));
-
-        private static string Render(ComputedContext context, Func<IEnumerable<string>> configRoots)
+        private static string Render(ComputedContext context)
         {
             var settings = context.Settings;
             var keys = ModifiedSettingsParser.ParseKeys(settings.Get("different_settings_to_system"));
@@ -35,7 +29,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
             var changes = keys.Select(key => (Key: key, Text: Describe(key, settings.Get(key)))).ToList();
 
             // Without inherits_group there is no way to know which presets are the user's own, so no claim is made.
-            var saved = parents.Count == 0 ? null : FindSavedValues(context, configRoots, settings, parents);
+            var saved = parents.Count == 0 ? null : FindSavedValues(context, settings, parents);
             if (saved == null)
             {
                 return $"{heading} {string.Join(", ", changes.Select(c => c.Text))}";
@@ -58,12 +52,11 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
             return string.Join("\n", lines);
         }
 
-        private static SavedPresetValues? FindSavedValues(
-            ComputedContext context, Func<IEnumerable<string>> configRoots, GcodeSettings settings, IReadOnlyList<string> parents)
+        private static SavedPresetValues? FindSavedValues(ComputedContext context, GcodeSettings settings, IReadOnlyList<string> parents)
         {
             try
             {
-                var locator = new UserPresetLocator(configRoots(), context.DebugLog);
+                var locator = new UserPresetLocator(context.ConfigRoots(), context.DebugLog);
                 return locator.FindSavedValues(PresetIdentities(settings, parents));
             }
             catch (Exception e)
