@@ -116,7 +116,8 @@ try
 
     // Track parse duration
     var parseStopwatch = Stopwatch.StartNew();
-    CuraSettingDto dto = parser.ParseGcode(fileContents);
+    var parseOptions = new ParseOptions(() => File.OpenRead(arguments.InputFile), output.Debug);
+    CuraSettingDto dto = parser.ParseGcode(fileContents, parseOptions);
     parseStopwatch.Stop();
 
     PrintMetadata.Apply(dto, arguments.InputFile, Environment.GetEnvironmentVariable("SLIC3R_PP_OUTPUT_NAME"), new VersionService().GetVersion());

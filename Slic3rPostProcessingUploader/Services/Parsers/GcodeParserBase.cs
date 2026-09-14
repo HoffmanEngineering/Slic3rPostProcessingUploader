@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Slic3rPostProcessingUploader.Services.Parsers.Computed;
 
 namespace Slic3rPostProcessingUploader.Services.Parsers
 {
@@ -7,6 +8,12 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
     {
         [GeneratedRegex("{{(.*?)}}")]
         private static partial Regex TemplatePlaceholderRegex();
+
+        // A placeholder that is the only thing on its line apart from indentation. Group 1 is the indentation, group 2
+        // the key, group 3 the line terminator (empty at the end of the template). The lookbehind keeps a placeholder
+        // that follows other text on the same line out of this rule.
+        [GeneratedRegex("(?<=^|\n)([ \t]*){{(.*?)}}[ \t]*(\r?\n|$)")]
+        private static partial Regex StandalonePlaceholderLineRegex();
 
         // Matches PNG ("thumbnail begin") and JPG ("thumbnail_JPG begin") blocks. QOI is deliberately excluded since browsers cannot render it.
         [GeneratedRegex("thumbnail(?:_JPG)? begin (\\d+)x(\\d+)[\\sa-zA-Z\\d]*([\\S\\s]*?); thumbnail end", RegexOptions.IgnoreCase | RegexOptions.Multiline)]
@@ -60,6 +67,12 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         /// </summary>
         protected virtual bool SupportsMultiFilament => false;
 
+        /// <summary>
+        /// Values this slicer can compute from the G-code (e.g. object sizes) rather than read from a settings line.
+        /// Each runs only when the note template references its key.
+        /// </summary>
+        protected virtual IReadOnlyList<ComputedPlaceholder> ComputedPlaceholders => [];
+
         protected GcodeParserBase(string? noteTemplate)
         {
             if (string.IsNullOrEmpty(noteTemplate))
@@ -73,12 +86,15 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
             }
         }
 
-        public virtual CuraSettingDto ParseGcode(string gcode)
+        public CuraSettingDto ParseGcode(string gcode) => ParseGcode(gcode, ParseOptions.InMemory(gcode));
+
+        public virtual CuraSettingDto ParseGcode(string gcode, ParseOptions options)
         {
             // Slicer metadata only lives at the start and end of the file, so large files are narrowed down to those regions
             // and the "; key = value" lines are indexed once instead of scanning the file per setting.
             gcode = GcodeWindow.Trim(gcode);
             var gcodeSettings = GcodeSettings.Parse(gcode, SettingSeparators);
+            RunComputedPlaceholders(gcodeSettings, options);
 
             var settings = new CuraSettings
             {
@@ -109,11 +125,55 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         }
 
         /// <summary>
+        /// Runs every computed placeholder the template references and stores its value in the settings index, where
+        /// rendering picks it up like any other key. Unreferenced placeholders never run, so a template without
+        /// {{models}} never pays for the full-file scan.
+        /// </summary>
+        private void RunComputedPlaceholders(GcodeSettings settings, ParseOptions options)
+        {
+            if (ComputedPlaceholders.Count == 0)
+            {
+                return;
+            }
+
+            var referencedKeys = TemplatePlaceholderRegex().Matches(noteTemplate)
+                .Select(m => m.Groups[1].Value)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            ComputedContext? context = null;
+            foreach (var placeholder in ComputedPlaceholders)
+            {
+                if (referencedKeys.Contains(placeholder.Key))
+                {
+                    context ??= new ComputedContext(settings, options);
+                    settings.Set(placeholder.Key, placeholder.Render(context));
+                }
+            }
+        }
+
+        /// <summary>
         /// The note template will have placeholders that will be replaced with the actual values from the gcode.
+        /// A placeholder that is alone on its line is laid out as a block: every line of its value gets the line's
+        /// indentation, and an empty value removes the line altogether (the heading above it is left in place).
         /// </summary>
         protected string RenderNoteTemplate(GcodeSettings settings)
         {
-            return TemplatePlaceholderRegex().Replace(noteTemplate, match => settings.Get(match.Groups[1].Value));
+            var rendered = StandalonePlaceholderLineRegex().Replace(noteTemplate, match =>
+            {
+                var indent = match.Groups[1].Value;
+                var value = settings.Get(match.Groups[2].Value);
+                var terminator = match.Groups[3].Value;
+                if (value.Length == 0)
+                {
+                    return string.Empty;
+                }
+
+                var separator = terminator.Length > 0 ? terminator : "\n";
+                var lines = value.Split('\n').Select(line => indent + line.TrimEnd('\r'));
+                return string.Join(separator, lines) + terminator;
+            });
+
+            return TemplatePlaceholderRegex().Replace(rendered, match => settings.Get(match.Groups[1].Value));
         }
 
         /// <summary>
@@ -133,9 +193,16 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
             int numPlaceholders = 0;
             int numMatches = 0;
 
+            var computedKeys = ComputedPlaceholders.Select(p => p.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var matches = TemplatePlaceholderRegex().Matches(noteTemplate);
             foreach (Match match in matches)
             {
+                // Computed keys are never "; key = value" lines, so they say nothing about which slicer wrote the file.
+                if (computedKeys.Contains(match.Groups[1].Value))
+                {
+                    continue;
+                }
+
                 numPlaceholders++;
 
                 var value = settings.Get(match.Groups[1].Value);
