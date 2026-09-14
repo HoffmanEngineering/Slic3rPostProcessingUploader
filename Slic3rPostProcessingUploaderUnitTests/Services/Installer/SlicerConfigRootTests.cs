@@ -14,6 +14,13 @@ public class SlicerConfigRootTests
     }
 
     [TestMethod]
+    public void Windows_JoinsWithBackslash_EvenWhenAppDataHasTrailingSeparator()
+    {
+        var root = SlicerConfigRoot.Resolve(OSPlatform.Windows, "OrcaSlicer", appData: @"C:\Users\me\AppData\Roaming\", home: null, xdgConfigHome: null);
+        Assert.AreEqual(@"C:\Users\me\AppData\Roaming\OrcaSlicer", root);
+    }
+
+    [TestMethod]
     public void MacOS_UsesLibraryApplicationSupportUnderHome()
     {
         var root = SlicerConfigRoot.Resolve(OSPlatform.OSX, "OrcaSlicer", appData: null, home: "/Users/me", xdgConfigHome: null);

@@ -28,7 +28,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer
         public static string? Resolve(OSPlatform platform, string slicerDirectoryName, string? appData, string? home, string? xdgConfigHome)
         {
             if (platform == OSPlatform.Windows)
-                return string.IsNullOrWhiteSpace(appData) ? null : Path.Combine(appData, slicerDirectoryName);
+                return string.IsNullOrWhiteSpace(appData) ? null : appData.TrimEnd('\\') + '\\' + slicerDirectoryName;
 
             if (platform == OSPlatform.OSX)
                 return UnixPath(home, "Library", "Application Support", slicerDirectoryName);
@@ -38,7 +38,8 @@ namespace Slic3rPostProcessingUploader.Services.Installer
                 : UnixPath(home, ".config", slicerDirectoryName);
         }
 
-        // Joined with '/' rather than Path.Combine so the Unix layouts are testable on any OS.
+        // Joined with the platform's own separator rather than Path.Combine (which uses the host's), so every
+        // layout is testable on any OS.
         private static string? UnixPath(string? baseDir, params string[] segments) =>
             string.IsNullOrWhiteSpace(baseDir) ? null : string.Join('/', [baseDir.TrimEnd('/'), .. segments]);
     }
