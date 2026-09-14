@@ -1,16 +1,12 @@
 Profiles:
   Print: {{print_settings_id}}
   Printer: {{printer_settings_id}} ({{printer_model}}, {{nozzle_diameter}}mm nozzle)
-  Filament: {{filament_settings_id}} ({{filament_type}}, {{filament_vendor}}, {{filament_colour}})
+  Filament: {{filament_profiles}}
   Bed Type: {{curr_bed_type}}
   Host: {{host_type}}
 
-Profile Changes:
-  {{modified_settings}}
-
-Models:
-  {{models}}
-
+{{modified_settings}}
+{{models}}
 Settings:
 
 Quality:

@@ -13,7 +13,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.OrcaSlicer
         protected override bool SupportsMultiFilament => true;
 
         protected override IReadOnlyList<ComputedPlaceholder> ComputedPlaceholders =>
-            [ModelsPlaceholder.Instance, ModifiedSettingsPlaceholder.Instance];
+            [FilamentProfilesPlaceholder.Instance, ModifiedSettingsPlaceholder.Instance, ModelsPlaceholder.Instance];
 
         public static bool IsOrcaSlicer(string gcode)
         {

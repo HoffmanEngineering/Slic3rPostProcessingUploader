@@ -72,7 +72,7 @@ A placeholder that is alone on its line renders as a block: each line of the val
 
 ### Computed placeholders
 
-`Services/Parsers/Computed/` holds placeholders whose value comes from code (`ComputedPlaceholder(Key, Render)`), currently `{{models}}` (per-object size from a streaming scan of the whole file, `ObjectBoundsScanner`) and `{{modified_settings}}` (`different_settings_to_system`, split into saved/unsaved via the user's preset files, `UserPresetLocator`). Rules:
+`Services/Parsers/Computed/` holds placeholders whose value comes from code (`ComputedPlaceholder(Key, Render)`), currently `{{filament_profiles}}` (distinct filament profiles with counts), `{{models}}` (per-object size from a streaming scan of the whole file, `ObjectBoundsScanner`) and `{{modified_settings}}` (`different_settings_to_system`, split into saved/unsaved via the user's preset files, `UserPresetLocator`). The last two render a whole section — heading included, trailing newline — so that on a line of their own they vanish entirely when empty. Rules:
 
 - A parser lists what it supports in `ComputedPlaceholders`; only `OrcaParser` does today. A placeholder runs only when the active template references its key, so templates without `{{models}}` never pay for the full-file scan
 - `Render` must never throw: catch, `context.DebugLog(...)`, and return empty or a degraded value. The uploader must not fail a print log because of a note section

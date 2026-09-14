@@ -32,7 +32,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
             var saved = parents.Count == 0 ? null : FindSavedValues(context, settings, parents);
             if (saved == null)
             {
-                return $"{heading} {string.Join(", ", changes.Select(c => c.Text))}";
+                return Section($"{heading} {string.Join(", ", changes.Select(c => c.Text))}");
             }
 
             var savedChanges = changes.Where(c => saved.IsSaved(c.Key, settings.Get(c.Key))).Select(c => c.Text).ToList();
@@ -49,8 +49,15 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
                 lines.Add($"  Unsaved changes:  {string.Join(", ", unsavedChanges)}");
             }
 
-            return string.Join("\n", lines);
+            return Section(lines);
         }
+
+        /// <summary>
+        /// The value carries its own heading and ends with a newline, so a template can put the placeholder on a line
+        /// of its own and the whole section disappears when there is nothing to report.
+        /// </summary>
+        private static string Section(params IEnumerable<string> lines) =>
+            "Profile Changes:\n" + string.Concat(lines.Select(line => "  " + line + "\n"));
 
         private static SavedPresetValues? FindSavedValues(ComputedContext context, GcodeSettings settings, IReadOnlyList<string> parents)
         {

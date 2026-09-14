@@ -22,12 +22,13 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         }
 
         [TestMethod]
-        public void ShouldListEachObjectWithOuterDimensions()
+        public void ShouldListEachObjectWithOuterDimensionsUnderItsOwnHeading()
         {
             var gcode = Header + ";Z:0.2\n" + Instance("Cube", 0, Box(10, 10, 20, 20)) + ";Z:26.9\n" + Instance("Cube", 0, Box(10, 10, 20, 20));
 
-            // 20 mm between centrelines plus one 0.4 mm outer wall line width.
-            Assert.AreEqual("Cube  ×1   20.4 × 20.4 × 26.9 mm", Render(gcode));
+            // 20 mm between centrelines plus one 0.4 mm outer wall line width. The value carries its heading and a
+            // trailing newline so the template can drop the whole section when there is nothing to show.
+            Assert.AreEqual("Models:\n  Cube  ×1   20.4 × 20.4 × 26.9 mm\n", Render(gcode));
         }
 
         [TestMethod]
@@ -35,7 +36,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         {
             var gcode = Header + ";Z:5\n" + Instance("Cube", 0, Box(10, 10, 20, 20)) + Instance("Cube", 1, Box(50, 50, 20, 20)) + Instance("Cube", 2, Box(90, 90, 20, 20));
 
-            Assert.AreEqual("Cube  ×3   20.4 × 20.4 × 5.0 mm", Render(gcode));
+            Assert.AreEqual("Models:\n  Cube  ×3   20.4 × 20.4 × 5.0 mm\n", Render(gcode));
         }
 
         [TestMethod]
@@ -43,7 +44,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         {
             var gcode = Header + ";Z:5\n" + Instance("Cube", 0, Box(10, 10, 20, 20)) + Instance("Cube", 1, Box(50, 50, 30, 20));
 
-            Assert.AreEqual("Cube  ×1   20.4 × 20.4 × 5.0 mm\nCube  ×1   30.4 × 20.4 × 5.0 mm", Render(gcode));
+            Assert.AreEqual("Models:\n  Cube  ×1   20.4 × 20.4 × 5.0 mm\n  Cube  ×1   30.4 × 20.4 × 5.0 mm\n", Render(gcode));
         }
 
         [TestMethod]
@@ -52,8 +53,9 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
             var gcode = Header + ";Z:5\n" + Instance("3DBenchy.drc", 0, Box(0, 0, 60, 31)) + Instance("Cube", 1, Box(100, 100, 20, 20)) + Instance("3DBenchy.drc", 2, Box(0, 50, 60, 31));
 
             Assert.AreEqual(
-                "3DBenchy.drc  ×2   60.4 × 31.4 × 5.0 mm\n" +
-                "Cube          ×1   20.4 × 20.4 × 5.0 mm",
+                "Models:\n" +
+                "  3DBenchy.drc  ×2   60.4 × 31.4 × 5.0 mm\n" +
+                "  Cube          ×1   20.4 × 20.4 × 5.0 mm\n",
                 Render(gcode));
         }
 
@@ -62,7 +64,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         {
             var gcode = "; outer_wall_line_width = 105%\n; line_width = 0.5\n;Z:5\n" + Instance("Cube", 0, Box(10, 10, 20, 20));
 
-            Assert.AreEqual("Cube  ×1   20.5 × 20.5 × 5.0 mm", Render(gcode));
+            Assert.AreEqual("Models:\n  Cube  ×1   20.5 × 20.5 × 5.0 mm\n", Render(gcode));
         }
 
         [TestMethod]
@@ -70,7 +72,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         {
             var gcode = ";Z:5\n" + Instance("Cube", 0, Box(10, 10, 20, 20));
 
-            Assert.AreEqual("Cube  ×1   20.0 × 20.0 × 5.0 mm", Render(gcode));
+            Assert.AreEqual("Models:\n  Cube  ×1   20.0 × 20.0 × 5.0 mm\n", Render(gcode));
         }
 
         [TestMethod]
@@ -78,7 +80,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         {
             var gcode = ";Z:5\n" + Instance("Cube", 0, Box(0, 0, 20.05, 20.04));
 
-            Assert.AreEqual("Cube  ×1   20.1 × 20.0 × 5.0 mm", Render(gcode));
+            Assert.AreEqual("Models:\n  Cube  ×1   20.1 × 20.0 × 5.0 mm\n", Render(gcode));
         }
 
         [TestMethod]
@@ -106,7 +108,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
             var note = Render(gcode);
 
             // The trimmed fixture keeps four layers; centreline extents plus the 0.45 mm outer wall.
-            Assert.AreEqual("3DBenchy.drc  ×16   55.6 × 30.9 × 48.0 mm", note);
+            Assert.AreEqual("Models:\n  3DBenchy.drc  ×16   55.6 × 30.9 × 48.0 mm\n", note);
         }
     }
 }

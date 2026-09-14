@@ -59,8 +59,11 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
             int nameWidth = groups.Max(g => g.Size.Name.Length);
             int countWidth = groups.Max(g => g.Count.ToString(CultureInfo.InvariantCulture).Length);
             var lines = groups.Select(g =>
-                $"{g.Size.Name.PadRight(nameWidth)}  ×{g.Count.ToString(CultureInfo.InvariantCulture).PadRight(countWidth)}   {Mm(g.Size.Width)} × {Mm(g.Size.Depth)} × {Mm(g.Size.Height)} mm");
-            return string.Join("\n", lines);
+                $"  {g.Size.Name.PadRight(nameWidth)}  ×{g.Count.ToString(CultureInfo.InvariantCulture).PadRight(countWidth)}   {Mm(g.Size.Width)} × {Mm(g.Size.Depth)} × {Mm(g.Size.Height)} mm\n");
+
+            // The value carries its own heading and ends with a newline, so a template can put the placeholder on a
+            // line of its own and the whole section disappears when there are no objects.
+            return "Models:\n" + string.Concat(lines);
         }
 
         /// <summary>

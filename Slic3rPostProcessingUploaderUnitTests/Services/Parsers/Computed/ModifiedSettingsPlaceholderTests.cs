@@ -13,7 +13,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         }
 
         [TestMethod]
-        public void ShouldListEachChangedKeyWithItsValueFromTheGcode()
+        public void ShouldListEachChangedKeyWithItsValueUnderItsOwnHeading()
         {
             var note = Render(
                 "; different_settings_to_system = sparse_infill_density;wall_loops;;\n" +
@@ -21,7 +21,8 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
                 "; sparse_infill_density = 8%\n" +
                 "; wall_loops = 3\n");
 
-            Assert.AreEqual("Changed from \"0.16 High Quality @U1\": sparse_infill_density = 8%, wall_loops = 3", note);
+            // The value carries its heading and a trailing newline so the template drops the section when empty.
+            Assert.AreEqual("Profile Changes:\n  Changed from \"0.16 High Quality @U1\": sparse_infill_density = 8%, wall_loops = 3\n", note);
         }
 
         [TestMethod]
@@ -33,7 +34,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
                 "; inherits_group = ;;\n" +
                 "; wall_loops = 3\n");
 
-            Assert.AreEqual("Changed from profile:\n  Unsaved changes:  wall_loops = 3", note);
+            Assert.AreEqual("Profile Changes:\n  Changed from profile:\n    Unsaved changes:  wall_loops = 3\n", note);
         }
 
         [TestMethod]
@@ -41,7 +42,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         {
             var note = Render("; different_settings_to_system = wall_loops\n; wall_loops = 3\n");
 
-            Assert.AreEqual("Changed from profile: wall_loops = 3", note);
+            Assert.AreEqual("Profile Changes:\n  Changed from profile: wall_loops = 3\n", note);
         }
 
         [TestMethod]
@@ -49,7 +50,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         {
             var note = Render("; different_settings_to_system = some_hidden_key\n; inherits_group = \"P\"\n");
 
-            Assert.AreEqual("Changed from \"P\": some_hidden_key = (not in G-code)", note);
+            Assert.AreEqual("Profile Changes:\n  Changed from \"P\": some_hidden_key = (not in G-code)\n", note);
         }
 
         [TestMethod]
@@ -117,9 +118,10 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
             var note = RenderWithRoots(TwoChangesGcode, root);
 
             Assert.AreEqual(
-                "Changed from \"0.16 High Quality @U1\":\n" +
-                "  Saved in profile: sparse_infill_density = 8%, nozzle_temperature = 215\n" +
-                "  Unsaved changes:  wall_loops = 3",
+                "Profile Changes:\n" +
+                "  Changed from \"0.16 High Quality @U1\":\n" +
+                "    Saved in profile: sparse_infill_density = 8%, nozzle_temperature = 215\n" +
+                "    Unsaved changes:  wall_loops = 3\n",
                 note);
         }
 
@@ -132,8 +134,9 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
             var note = RenderWithRoots(TwoChangesGcode, root);
 
             Assert.AreEqual(
-                "Changed from \"0.16 High Quality @U1\":\n" +
-                "  Saved in profile: sparse_infill_density = 8%, wall_loops = 3, nozzle_temperature = 215",
+                "Profile Changes:\n" +
+                "  Changed from \"0.16 High Quality @U1\":\n" +
+                "    Saved in profile: sparse_infill_density = 8%, wall_loops = 3, nozzle_temperature = 215\n",
                 note);
         }
 
@@ -145,7 +148,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
 
             var note = RenderWithRoots(TwoChangesGcode, root);
 
-            StringAssert.Contains(note, "Unsaved changes:  sparse_infill_density = 8%");
+            StringAssert.Contains(note, "    Unsaved changes:  sparse_infill_density = 8%");
         }
 
         [TestMethod]
@@ -155,7 +158,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
 
             var note = RenderWithRoots(TwoChangesGcode, root);
 
-            Assert.AreEqual("Changed from \"0.16 High Quality @U1\": sparse_infill_density = 8%, wall_loops = 3, nozzle_temperature = 215", note);
+            Assert.AreEqual("Profile Changes:\n  Changed from \"0.16 High Quality @U1\": sparse_infill_density = 8%, wall_loops = 3, nozzle_temperature = 215\n", note);
         }
 
         [TestMethod]
@@ -167,7 +170,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
 
             var note = ModifiedSettingsPlaceholder.Instance.Render(new ComputedContext(settings, options));
 
-            StringAssert.StartsWith(note, "Changed from \"0.16 High Quality @U1\": sparse_infill_density");
+            StringAssert.StartsWith(note, "Profile Changes:\n  Changed from \"0.16 High Quality @U1\": sparse_infill_density");
             Assert.IsTrue(log.Any(l => l.Contains("no home")), string.Join("\n", log));
         }
 
