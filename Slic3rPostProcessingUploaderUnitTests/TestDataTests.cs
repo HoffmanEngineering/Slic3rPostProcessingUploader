@@ -21,6 +21,7 @@ public sealed class TestDataTests
             {
                 Path.Combine("OrcaSlicer", "orcaslicer-2.2.0-rc-calibration-cube-two-filament.gcode"),
                 Path.Combine("OrcaSlicer", "orcaslicer-2.2.0-rc-calibration-cube.gcode"),
+                Path.Combine("OrcaSlicer", "orcaslicer-2.4.0-benchy-x16.gcode"),
             },
             fixtures);
     }
