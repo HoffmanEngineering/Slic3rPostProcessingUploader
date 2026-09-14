@@ -68,7 +68,13 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
 
         private const string UploaderMarker = "Slic3rPostProcessingUploader";
 
-        private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true };
+        // The default encoder turns quotes and non-ASCII into \u escapes; the slicer writes these files as plain
+        // UTF-8 and users read them, so keep a quoted Windows path or an accented user name legible.
+        private static readonly JsonSerializerOptions WriteOptions = new()
+        {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        };
 
         public InstallResult Install(string executablePath, string flags, bool dryRun)
         {
@@ -141,7 +147,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
                         {
                             if (postProcess.Count > 0)
                                 withOtherScripts++;
-                            postProcess.Add(JsonValue.Create(scriptEntry));
+                            postProcess.Add((JsonNode?)JsonValue.Create(scriptEntry));   // the non-generic overload is AOT-safe
                         }
 
                         if (!dryRun)

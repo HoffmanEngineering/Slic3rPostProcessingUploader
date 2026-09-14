@@ -390,6 +390,25 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
         }
 
         [TestMethod]
+        public void Install_WritesQuotesAndNonAsciiLiterally_NotAsUnicodeEscapes()
+        {
+            // The files are user-visible and the slicer writes plain UTF-8, so a quoted path must appear as
+            // \"C:\\...\" rather than \u0022C:\\...\u0022, and an accented user name must not become \u00F6.
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer");
+            try
+            {
+                var installer = new TestOrcaInstaller(configRootOverride: root);
+                installer.Install("C:\\Users\\Jörg\\3D Print Log\\uploader.exe", "--full", dryRun: false);
+
+                var overridePath = Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json");
+                var text = File.ReadAllText(overridePath);
+                StringAssert.Contains(text, "\"\\\"C:\\\\Users\\\\Jörg\\\\3D Print Log\\\\uploader.exe\\\" --full\"");
+                Assert.IsFalse(text.Contains("\\u00"), text);
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
         public void GetInstallStatus_WhenNotInstalled_ReturnsCorrectStatus()
         {
             var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer");
