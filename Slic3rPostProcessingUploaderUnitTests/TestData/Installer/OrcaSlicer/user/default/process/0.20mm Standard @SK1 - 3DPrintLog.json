@@ -1,0 +1,11 @@
+{
+    "from": "User",
+    "inherits": "0.20mm Standard @SK1",
+    "is_custom_defined": "0",
+    "name": "0.20mm Standard @SK1 - 3DPrintLog",
+    "post_process": [
+        "C:\\Slic3rUploader\\Slic3rPostProcessingUploader.exe --full"
+    ],
+    "print_settings_id": "0.20mm Standard @SK1 - 3DPrintLog",
+    "version": "2.2.0.4"
+}

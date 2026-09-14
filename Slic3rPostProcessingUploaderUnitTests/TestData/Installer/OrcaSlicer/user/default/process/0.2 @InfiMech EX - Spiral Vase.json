@@ -1,0 +1,24 @@
+{
+	"brim_type": "no_brim",
+	"detect_thin_wall": "0",
+	"from": "User",
+	"inherits": "0.16mm Optimal @InfiMech EX",
+	"layer_height": "0.2",
+	"name": "0.2 @InfiMech EX - Spiral Vase",
+	"post_process": [
+		"\"D:\\Development\\3d-print-log\\Slic3rPostProcessingUploader\\Slic3rPostProcessingUploader\\bin\\Debug\\net10.0\\Slic3rPostProcessingUploader.exe\" --full"
+	],
+	"print_extruder_id": [
+		"1"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"print_settings_id": "0.2 @InfiMech EX - Spiral Vase",
+	"sparse_infill_density": "0%",
+	"spiral_mode": "1",
+	"top_shell_layers": "0",
+	"version": "2.4.0.1",
+	"wall_generator": "arachne",
+	"wall_loops": "1"
+}

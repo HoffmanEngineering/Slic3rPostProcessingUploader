@@ -1,0 +1,24 @@
+{
+	"brim_type": "no_brim",
+	"from": "User",
+	"inherits": "0.16mm Optimal @InfiMech EX",
+	"name": "0.16mm Optimal @InfiMech EX - 3D Print Log",
+	"outer_wall_speed": "200",
+	"overhang_1_4_speed": "100%",
+	"overhang_2_4_speed": "80%",
+	"overhang_3_4_speed": "50%",
+	"post_process": [
+		"\"D:\\Development\\3d-print-log\\Slic3rPostProcessingUploader\\Slic3rPostProcessingUploader\\bin\\Debug\\net10.0\\Slic3rPostProcessingUploader.exe\" --full"
+	],
+	"print_extruder_id": [
+		"1"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"print_settings_id": "0.16mm Optimal @InfiMech EX - 3D Print Log",
+	"sparse_infill_density": "10%",
+	"sparse_infill_pattern": "gyroid",
+	"version": "2.4.0.1",
+	"wall_loops": "3"
+}

@@ -1,4 +1,5 @@
 using Slic3rPostProcessingUploader.Services;
+using Slic3rPostProcessingUploader.Services.Installer;
 using Slic3rPostProcessingUploader.Services.Parsers;
 using System.Collections;
 using System.Diagnostics;
@@ -66,6 +67,18 @@ try
     if (!string.IsNullOrEmpty(arguments.DebugPath))
     {
         output.Info($"Debug output: {arguments.DebugPath}");
+    }
+
+    // Handle install/uninstall wizard modes
+    if (arguments.Mode == AppMode.Wizard || arguments.Mode == AppMode.Install || arguments.Mode == AppMode.Uninstall)
+    {
+        string exePath = Environment.ProcessPath ?? Environment.GetCommandLineArgs()[0];
+        var wizard = new WizardService(SlicerInstallerRegistry.All, exePath);
+        if (arguments.Mode == AppMode.Uninstall)
+            wizard.RunUninstall(arguments.DryRun);
+        else
+            wizard.RunInstall(arguments.DryRun);
+        return 0;
     }
 
     LogEnvironmentVariables(arguments.DebugPath);

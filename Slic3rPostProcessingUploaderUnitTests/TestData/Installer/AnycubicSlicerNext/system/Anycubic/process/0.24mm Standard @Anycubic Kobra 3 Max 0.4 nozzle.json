@@ -1,0 +1,21 @@
+{
+    "type": "process",
+    "from": "system",
+    "setting_id": "GP004",
+    "name": "0.24mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
+    "inherits": "0.20mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
+    "instantiation": "true",
+    "version": "1.3.2507.10",
+    "print_settings_id": "0.24mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
+    "layer_height": "0.24",
+    "filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{layer_height}_{print_time}.gcode",
+    "compatible_printers": [
+        "Anycubic Kobra 3 Max 0.4 nozzle"
+    ],
+    "gap_infill_speed": "150",
+    "initial_layer_print_height": "0.24",
+    "inner_wall_speed": "150",
+    "is_custom_defined": "0",
+    "outer_wall_speed": "140",
+    "sparse_infill_speed": "150"
+}

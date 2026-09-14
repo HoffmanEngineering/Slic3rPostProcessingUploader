@@ -40,6 +40,30 @@ G-code file → ArgumentParser → ParserFactory → Slicer-specific Parser → 
 
 OrcaSlicer, PrusaSlicer, Bambu Studio, FLSun Slicer, Anycubic Slicer Next
 
+### Installer / Wizard
+
+- **Services/AppMode.cs**: Enum (PostProcess, Wizard, Install, Uninstall) — detected from CLI args in ArgumentParser
+- **Services/Installer/ISlicerProfileInstaller.cs**: Interface for each slicer family's installer
+- **Services/Installer/OrcaFamily/OrcaFamilyProfileInstaller.cs**: Abstract base with all JSON profile logic
+- **Services/Installer/SlicerConfigRoot.cs**: Pure, testable resolver for the per-OS config root (`%APPDATA%`, `~/Library/Application Support`, `$XDG_CONFIG_HOME`/`~/.config`). Use `SpecialFolder.UserProfile` for home, never `Personal` (that is `~/Documents` on Unix)
+- **Services/Installer/OrcaFamily/**: Concrete subclasses — OrcaSlicerInstaller, SnapmakerOrcaInstaller, AnycubicSlicerNextInstaller (one property each)
+- **Services/Installer/SlicerInstallerRegistry.cs**: Registry of all supported installers — add new slicers here
+- **Services/Installer/WizardService.cs**: Interactive terminal wizard driving the install/uninstall flow (`install`/`uninstall` verbs, `--dry-run`)
+
+Rules the installer must keep, because users' own profiles live next to ours:
+
+- The installer only ever creates, edits or deletes files it owns: `<profile> - 3DPrintLog.json` overrides (`IsInstallerOwned` = file name suffix). A hand-made profile that already runs the uploader is left alone (only a stale executable path is refreshed, keeping the user's flags), its parent is skipped, and `uninstall` reports it rather than touching it
+- Our `post_process` entry is recognised by executable path (`IsOurEntry`), not just by file name, so a renamed or moved binary is still found
+- System profiles are read with `JsonDocument` (real vendor files contain duplicate keys, which `JsonNode` rejects); unreadable files are counted, never fatal
+- Profiles are written indented with `JavaScriptEncoder.UnsafeRelaxedJsonEscaping` so quoted Windows paths and non-ASCII stay legible
+
+### Adding a New OrcaSlicer Fork
+
+1. Create a subclass of `OrcaFamilyProfileInstaller` in `Services/Installer/OrcaFamily/`
+2. Set `SlicerName` (display name) and `SlicerDirectoryName` (config folder name on disk, e.g. `"Snapmaker_Orca"`)
+3. Register it in `SlicerInstallerRegistry.All`
+4. Add a pruned copy of a real config tree under `Slic3rPostProcessingUploaderUnitTests/TestData/Installer/{SlicerDirectoryName}/` (system vendor index + a few process profiles, one user account) and list it in `InstallerFixture.All` so the data-driven installer tests cover it
+
 ### Template System
 
 Templates use `{{setting_name}}` placeholders that get replaced with values from G-code comments like `; setting_name = value`. Built-in templates are `.txt` files under `Slic3rPostProcessingUploader/Templates/`; custom ones come from `--template <path>` via `NoteTemplateFromFile`. Both implement `INoteTemplate`.
@@ -58,6 +82,10 @@ Snapshot.Match(
 ```
 
 Keep fixtures compact by replacing unused toolpath bodies with a short omission marker while preserving the header, thumbnails, print summary, and trailing configuration. Retain one untrimmed fixture for `GcodeWindowTests`.
+
+### Installer tests
+
+Installer unit tests run against pruned copies of real slicer config trees under `Slic3rPostProcessingUploaderUnitTests/TestData/Installer/{slicer}/` (see `InstallerFixture`). Two manual end-to-end checks drive the real wizard against a real OrcaSlicer — `scripts/e2e-linux/run.ps1` (Docker, headless) and `scripts/e2e-windows/run.ps1` (Windows Sandbox, real `%APPDATA%` and a quoted `Program Files` path). They are pre-release checks, not CI (each takes ~8 minutes and needs Docker Desktop or the Windows Sandbox feature); run one after changing `WizardService`, the profile-writing code or the config-root resolution. Each README explains what it proves and how to recalibrate click coordinates when the slicer's layout changes. The `docs/images/` screenshots come from the Linux run.
 
 ## Adding a New Slicer
 

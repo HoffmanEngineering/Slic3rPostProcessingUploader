@@ -18,7 +18,8 @@ namespace Slic3rPostProcessingUploader.Services
         public bool DisableTelemetry { get; private set; }
 
         /// <summary>
-        /// Parse and print the rendered note and DTO, but do not upload or open a browser.
+        /// Post-process mode: parse and print the rendered note and DTO without uploading or opening a browser.
+        /// Install/uninstall mode: report the profile changes that would be made without writing any files.
         /// </summary>
         public bool DryRun { get; private set; }
 
@@ -26,11 +27,36 @@ namespace Slic3rPostProcessingUploader.Services
 
         public bool DisplayVersion { get; private set; }
 
+        public AppMode Mode { get; private set; }
+
         public ArgumentParser(string[] args) {
             this.UseDefaultNoteTemplate = true;
             this.UseFullNoteTemplate = false;
             this.DisableTelemetry = false;
             this.DisplayHelp = false;
+
+            // Detect install/uninstall sub-commands first
+            if (args.Length == 0)
+            {
+                this.Mode = AppMode.Wizard;
+                return;
+            }
+
+            if (args[0] == "install")
+            {
+                this.Mode = AppMode.Install;
+                this.DryRun = args.Contains("--dry-run");
+                return;
+            }
+
+            if (args[0] == "uninstall")
+            {
+                this.Mode = AppMode.Uninstall;
+                this.DryRun = args.Contains("--dry-run");
+                return;
+            }
+
+            this.Mode = AppMode.PostProcess;
 
             // InputFile is the last argument, but only if it's not a flag
             var lastArg = args.LastOrDefault();
@@ -173,6 +199,11 @@ namespace Slic3rPostProcessingUploader.Services
             Console.WriteLine();
             Console.WriteLine("Usage: In the Slicer's 'Post-Processing Scripts' section, add the path to this file");
             Console.WriteLine("Slic3rPostProcessingUploader.exe [options]");
+            Console.WriteLine();
+            Console.WriteLine("Setup wizard (OrcaSlicer-family slicers): adds the uploader to every process profile for you.");
+            Console.WriteLine("  Slic3rPostProcessingUploader.exe                     Run with no arguments (or double-click) to start the wizard");
+            Console.WriteLine("  Slic3rPostProcessingUploader.exe install [--dry-run]   Same as above; --dry-run only reports what would change");
+            Console.WriteLine("  Slic3rPostProcessingUploader.exe uninstall [--dry-run] Remove the uploader from the profiles the wizard created");
             Console.WriteLine();
             Console.WriteLine("Options:");
             Console.WriteLine("--help, -h: Display this help message. No settings will be uploaded if help is displayed.");

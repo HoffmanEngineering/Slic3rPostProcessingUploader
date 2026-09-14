@@ -67,3 +67,8 @@ Slic3rPostProcessingUploader/Templates/**/*.txt text eol=lf
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+###############################################################################
+# The Linux end-to-end script runs inside a container, so it must stay LF.
+###############################################################################
+scripts/e2e-linux/*.sh text eol=lf

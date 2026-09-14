@@ -1,0 +1,14 @@
+{
+    "from": "User",
+    "inherits": "0.20 Standard @Snapmaker U1 (0.4 nozzle)",
+    "is_custom_defined": "0",
+    "name": "0.20 Standard @Snapmaker U1 (0.4 nozzle) - 3D Print Log",
+    "post_process": [
+        "\"D:\\Development\\3d-print-log\\Slic3rPostProcessingUploader\\Slic3rPostProcessingUploader\\bin\\Debug\\net10.0\\Slic3rPostProcessingUploader.exe\" --full"
+    ],
+    "print_settings_id": "0.20 Standard @Snapmaker U1 (0.4 nozzle) - 3D Print Log",
+    "sparse_infill_density": "10%",
+    "sparse_infill_pattern": "gyroid",
+    "version": "2.2.40.2",
+    "wall_loops": "3"
+}
