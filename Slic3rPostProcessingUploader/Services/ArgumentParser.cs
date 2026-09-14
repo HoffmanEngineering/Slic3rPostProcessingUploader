@@ -200,6 +200,11 @@ namespace Slic3rPostProcessingUploader.Services
             Console.WriteLine("Usage: In the Slicer's 'Post-Processing Scripts' section, add the path to this file");
             Console.WriteLine("Slic3rPostProcessingUploader.exe [options]");
             Console.WriteLine();
+            Console.WriteLine("Setup wizard (OrcaSlicer-family slicers): adds the uploader to every process profile for you.");
+            Console.WriteLine("  Slic3rPostProcessingUploader.exe                     Run with no arguments (or double-click) to start the wizard");
+            Console.WriteLine("  Slic3rPostProcessingUploader.exe install [--dry-run]   Same as above; --dry-run only reports what would change");
+            Console.WriteLine("  Slic3rPostProcessingUploader.exe uninstall [--dry-run] Remove the uploader from the profiles the wizard created");
+            Console.WriteLine();
             Console.WriteLine("Options:");
             Console.WriteLine("--help, -h: Display this help message. No settings will be uploaded if help is displayed.");
             Console.WriteLine("--version, -v: Display the version number.");

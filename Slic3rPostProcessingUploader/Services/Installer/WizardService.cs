@@ -16,7 +16,11 @@ namespace Slic3rPostProcessingUploader.Services.Installer
             PrintHeader();
             Console.WriteLine("Scanning for supported slicers...\n");
 
-            var detected = _installers.Where(i => i.IsDetected()).ToList();
+            // Each status is a scan of the slicer's config tree, so take it once and reuse it for the prompts.
+            var detected = _installers
+                .Where(i => i.IsDetected())
+                .Select(i => (Installer: i, Status: i.GetInstallStatus(_executablePath)))
+                .ToList();
 
             if (detected.Count == 0)
             {
@@ -25,43 +29,45 @@ namespace Slic3rPostProcessingUploader.Services.Installer
                 return;
             }
 
-            // Show summary of all slicers
             foreach (var installer in _installers)
             {
-                if (!installer.IsDetected())
+                var found = detected.FirstOrDefault(d => d.Installer == installer);
+                if (found.Installer == null)
                 {
                     Console.WriteLine($"  {installer.SlicerName,-26} (not detected — skipped)");
                     continue;
                 }
 
-                var status = installer.GetInstallStatus(_executablePath);
-                string statusText = status.IsInstalled
-                    ? $"Already installed | {status.InstalledCount}/{status.ProfileCount} profiles | flags: {status.InstalledFlags}"
-                    : $"Not installed | {status.ProfileCount} process profiles found";
+                string statusText = found.Status.IsInstalled
+                    ? $"Already installed | {found.Status.InstalledCount}/{found.Status.ProfileCount} profiles | flags: {found.Status.InstalledFlags}"
+                    : $"Not installed | {found.Status.ProfileCount} process profiles found";
                 Console.WriteLine($"  Found: {installer.SlicerName,-20} {statusText}");
             }
 
             Console.WriteLine();
 
-            // Per-slicer prompts
-            bool anyInstalled = false;
-            foreach (var installer in detected)
+            var installedTo = new List<string>();
+            foreach (var (installer, status) in detected)
             {
-                var status = installer.GetInstallStatus(_executablePath);
-
                 Console.WriteLine($"--- {installer.SlicerName} ---");
+
+                // Vendor process profiles only exist once a printer has been added in the slicer; without any there
+                // is nothing to install into, and asking would just end in "0 created".
+                if (status.ProfileCount == 0)
+                {
+                    Console.WriteLine($"No process profiles found. Add your printer(s) in {installer.SlicerName} first, then run this again.\n");
+                    continue;
+                }
 
                 if (status.IsInstalled)
                 {
                     Console.Write($"Already installed (flags: {status.InstalledFlags}). Reinstall with new flags? [y/N]: ");
-                    var answer = Console.ReadLine()?.Trim().ToLower();
-                    if (answer != "y") { Console.WriteLine(); continue; }
+                    if (ReadAnswer() != "y") { Console.WriteLine(); continue; }
                 }
                 else
                 {
                     Console.Write($"Install to {installer.SlicerName}? [Y/n]: ");
-                    var answer = Console.ReadLine()?.Trim().ToLower();
-                    if (answer == "n") { Console.WriteLine(); continue; }
+                    if (ReadAnswer() == "n") { Console.WriteLine(); continue; }
                 }
 
                 string flags = PromptForFlags();
@@ -83,14 +89,19 @@ namespace Slic3rPostProcessingUploader.Services.Installer
                 if (result.Unreadable > 0)
                     Console.WriteLine($"  Warning: {result.Unreadable} profile file(s) could not be read and were skipped.");
 
-                anyInstalled = true;
+                if (!dryRun) installedTo.Add(installer.SlicerName);
                 Console.WriteLine();
             }
 
-            if (!anyInstalled)
-                Console.WriteLine("No changes made.");
-            else
+            if (installedTo.Count > 0)
+            {
                 Console.WriteLine("Setup complete!");
+                Console.WriteLine($"Restart {string.Join(" / ", installedTo)} and choose a process preset ending in \" - 3DPrintLog\" to have each export logged.");
+            }
+            else if (dryRun && detected.Any(d => d.Status.ProfileCount > 0))
+                Console.WriteLine("Dry run — no files were written.");
+            else
+                Console.WriteLine("No changes made.");
 
             PauseBeforeExit();
         }
@@ -114,8 +125,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer
 
                 Console.WriteLine($"--- {installer.SlicerName} ---");
                 Console.Write($"Remove from {status.InstalledCount} profile(s)? [Y/n]: ");
-                var answer = Console.ReadLine()?.Trim().ToLower();
-                if (answer == "n") { Console.WriteLine(); continue; }
+                if (ReadAnswer() == "n") { Console.WriteLine(); continue; }
 
                 var result = installer.Uninstall(_executablePath, dryRun);
 
@@ -152,18 +162,18 @@ namespace Slic3rPostProcessingUploader.Services.Installer
             bool useFullTemplate = templateChoice == "2";
 
             Console.Write("  Opt out of telemetry? [y/N]: ");
-            var telemetryAnswer = Console.ReadLine()?.Trim().ToLower();
-            bool optOutTelemetry = telemetryAnswer == "y";
+            bool optOutTelemetry = ReadAnswer() == "y";
 
             Console.Write("  Additional flags (leave blank for none): ");
             var additionalFlags = Console.ReadLine()?.Trim() ?? "";
 
             Console.WriteLine();
-            return BuildFlagsForTesting(useFullTemplate, optOutTelemetry, additionalFlags);
+            return BuildFlags(useFullTemplate, optOutTelemetry, additionalFlags);
         }
 
-        // internal for testing
-        internal static string BuildFlagsForTesting(bool useFullTemplate, bool optOutTelemetry, string additionalFlags)
+        private static string ReadAnswer() => Console.ReadLine()?.Trim().ToLowerInvariant() ?? "";
+
+        internal static string BuildFlags(bool useFullTemplate, bool optOutTelemetry, string additionalFlags)
         {
             var parts = new List<string>();
             parts.Add(useFullTemplate ? "--full" : "--default");

@@ -409,6 +409,24 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer.OrcaFamily
         }
 
         [TestMethod]
+        public void GetInstallStatus_SkipsCorruptOverride_InsteadOfThrowing()
+        {
+            // The wizard prints a status line before anything else; a half-written override must not crash it.
+            var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer");
+            try
+            {
+                File.WriteAllText(Path.Combine(root, "user", "default", "process", "0.20mm Standard @Printer - 3DPrintLog.json"), "{ \"name\": ");
+                var installer = new TestOrcaInstaller(configRootOverride: root);
+
+                var status = installer.GetInstallStatus("C:\\uploader.exe");
+
+                Assert.IsFalse(status.IsInstalled);
+                Assert.AreEqual(1, status.ProfileCount);
+            }
+            finally { Directory.Delete(root, recursive: true); }
+        }
+
+        [TestMethod]
         public void GetInstallStatus_WhenNotInstalled_ReturnsCorrectStatus()
         {
             var root = BuildTempConfigDirWithUserOverride("0.20mm Standard @Printer");

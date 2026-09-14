@@ -45,7 +45,7 @@ Download the [latest release for your operating system](https://github.com/Hoffm
 
 On macOS and Linux, mark the file executable after downloading (`chmod +x Slic3rPostProcessingUploader-osx-arm64`).
 
-In the Slicer's 'Post-Processing Scripts' section, add the path to this file. Full/Absolute paths are recommended:
+For OrcaSlicer-family slicers, the quickest route is the [Setup Wizard](#setup-wizard), which adds the uploader to every process profile for you. Otherwise, in the Slicer's 'Post-Processing Scripts' section, add the path to this file. Full/Absolute paths are recommended:
 
 ### Examples:
 
@@ -147,6 +147,7 @@ Install to OrcaSlicer? [Y/n]:
   Done: 44 created, 0 updated, 0 skipped.
 
 Setup complete!
+Restart OrcaSlicer and choose a process preset ending in " - 3DPrintLog" to have each export logged.
 ```
 
 It does not touch the slicer's built-in profiles. For every process profile the slicer offers, it creates a user preset named `<profile> - 3DPrintLog` that inherits the original and adds the uploader as a post-processing script. Restart the slicer and pick one of those presets to have each export logged:
@@ -172,7 +173,7 @@ Slic3rPostProcessingUploader uninstall --dry-run
 
 ### Important: Add Your Printers First
 
-For OrcaSlicer-family slicers, vendor-specific process profiles (e.g. TwoTrees, Bambu) are only downloaded when you add a printer through the slicer's setup wizard. **Add all your printers in the slicer before running the install wizard**, otherwise those vendor profiles won't be picked up.
+For OrcaSlicer-family slicers, vendor-specific process profiles (e.g. TwoTrees, Bambu) are only downloaded when you add a printer through the slicer's setup wizard. **Add all your printers in the slicer before running the install wizard**, otherwise those vendor profiles won't be picked up. A slicer with no printers yet shows "0 process profiles found" and the wizard skips it with a reminder.
 
 ![OrcaSlicer's printer selection page](docs/images/orca-printer-selection.png)
 
@@ -186,13 +187,21 @@ The wizard only ever creates and removes its own `<profile> - 3DPrintLog` overri
 - If your profile points at an old copy of the uploader (it was moved or reinstalled), `install` updates just the path and keeps whatever flags you chose.
 - `uninstall` never edits or deletes your hand-made profiles; it tells you how many still reference the uploader so you can remove them in the slicer.
 
+### If You Move or Update the Uploader
+
+The presets point at the uploader by absolute path. If you move the file, run `install` again from its new location: it updates the path in every preset it created (and in hand-made profiles that referenced the old copy) and reports them as "updated". Replacing the file in place needs nothing.
+
 ### Supported Slicers (Setup Wizard)
 
-| Slicer | Config directory |
-|--------|-----------------|
-| OrcaSlicer | OS-default per platform |
-| Snapmaker Orca | OS-default per platform |
-| AnycubicSlicer Next | OS-default per platform |
+The wizard looks for each slicer's config directory; a slicer is "detected" when that directory exists.
+
+| Slicer | Windows | macOS | Linux |
+|--------|---------|-------|-------|
+| OrcaSlicer | `%APPDATA%\OrcaSlicer` | `~/Library/Application Support/OrcaSlicer` | `~/.config/OrcaSlicer` |
+| Snapmaker Orca | `%APPDATA%\Snapmaker_Orca` | `~/Library/Application Support/Snapmaker_Orca` | `~/.config/Snapmaker_Orca` |
+| AnycubicSlicer Next | `%APPDATA%\AnycubicSlicerNext` | `~/Library/Application Support/AnycubicSlicerNext` | `~/.config/AnycubicSlicerNext` |
+
+On Linux, `$XDG_CONFIG_HOME` is honoured in place of `~/.config`. PrusaSlicer and other non-Orca slicers are not covered by the wizard; add the uploader to their profiles by hand as described under [Usage](#usage).
 
 ## Example
 

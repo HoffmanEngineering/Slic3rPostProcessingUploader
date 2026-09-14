@@ -42,20 +42,12 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
                     var overridePath = Path.Combine(accountDir, "process", systemProfile.Name + ProfileNameSuffix + ".json");
                     if (!File.Exists(overridePath)) continue;
 
-                    var node = JsonNode.Parse(File.ReadAllText(overridePath));
-                    var postProcess = node?["post_process"]?.AsArray();
-                    if (postProcess == null) continue;
+                    var postProcess = TryReadObject(overridePath)?["post_process"]?.AsArray();
+                    int ourIndex = IndexOfOurEntry(postProcess, executablePath);
+                    if (ourIndex < 0) continue;
 
-                    var ourEntry = postProcess
-                        .Select(e => e?.GetValue<string>())
-                        .FirstOrDefault(e => e != null && IsOurEntry(e, executablePath));
-
-                    if (ourEntry != null)
-                    {
-                        installedCount++;
-                        if (detectedFlags == null)
-                            detectedFlags = ExtractFlags(ourEntry);
-                    }
+                    installedCount++;
+                    detectedFlags ??= SplitScriptEntry(postProcess![ourIndex]!.GetValue<string>()).Flags;
                 }
             }
 
@@ -175,7 +167,9 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
                 }
             }
 
-            return new InstallResult(created, updated, skipped, withOtherScripts, 0, 0,
+            return new InstallResult(
+                Created: created, Updated: updated, Skipped: skipped, WithOtherScripts: withOtherScripts,
+                RemovedFiles: 0, ModifiedFiles: 0,
                 CoveredByHandMade: coveredByHandMade, HandMadeRefreshed: handMadeRefreshed, Unreadable: unreadable);
         }
 
@@ -248,8 +242,6 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
 
         private static bool PathMatches(string a, string b) =>
             string.Equals(a, b, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
-
-        private static string? ExtractFlags(string scriptEntry) => SplitScriptEntry(scriptEntry).Flags;
 
         /// <summary>
         /// Splits <c>"C:\path\uploader.exe" --flags</c> or <c>C:\path\uploader.exe --flags</c> into the executable
@@ -340,7 +332,10 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
                 }
             }
 
-            return new InstallResult(0, 0, 0, 0, removedFiles, modifiedFiles, HandMadeLeft: handMadeLeft, Unreadable: unreadable);
+            return new InstallResult(
+                Created: 0, Updated: 0, Skipped: 0, WithOtherScripts: 0,
+                RemovedFiles: removedFiles, ModifiedFiles: modifiedFiles,
+                HandMadeLeft: handMadeLeft, Unreadable: unreadable);
         }
 
         internal record SystemProfile(string Name, string FilePath, string Version);
