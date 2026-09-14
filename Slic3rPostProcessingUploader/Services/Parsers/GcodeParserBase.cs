@@ -9,11 +9,12 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         [GeneratedRegex("{{(.*?)}}")]
         private static partial Regex TemplatePlaceholderRegex();
 
-        // A placeholder that is the only thing on its line apart from indentation. Group 1 is the indentation, group 2
+        // Every placeholder, in one pass so a substituted value is never re-read as template. The first alternative is
+        // a placeholder that is the only thing on its line apart from indentation: group 1 is the indentation, group 2
         // the key, group 3 the line terminator (empty at the end of the template). The lookbehind keeps a placeholder
-        // that follows other text on the same line out of this rule.
-        [GeneratedRegex("(?<=^|\n)([ \t]*){{(.*?)}}[ \t]*(\r?\n|$)")]
-        private static partial Regex StandalonePlaceholderLineRegex();
+        // that follows other text on the same line out of that branch; those match group 4 and render verbatim.
+        [GeneratedRegex("(?<=^|\n)([ \t]*){{(.*?)}}[ \t]*(\r?\n|$)|{{(.*?)}}")]
+        private static partial Regex RenderPlaceholderRegex();
 
         // Matches PNG ("thumbnail begin") and JPG ("thumbnail_JPG begin") blocks. QOI is deliberately excluded since browsers cannot render it.
         [GeneratedRegex("thumbnail(?:_JPG)? begin (\\d+)x(\\d+)[\\sa-zA-Z\\d]*([\\S\\s]*?); thumbnail end", RegexOptions.IgnoreCase | RegexOptions.Multiline)]
@@ -158,8 +159,13 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         /// </summary>
         protected string RenderNoteTemplate(GcodeSettings settings)
         {
-            var rendered = StandalonePlaceholderLineRegex().Replace(noteTemplate, match =>
+            return RenderPlaceholderRegex().Replace(noteTemplate, match =>
             {
+                if (match.Groups[4].Success)
+                {
+                    return settings.Get(match.Groups[4].Value);
+                }
+
                 var indent = match.Groups[1].Value;
                 var value = settings.Get(match.Groups[2].Value);
                 var terminator = match.Groups[3].Value;
@@ -172,8 +178,6 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
                 var lines = value.Split('\n').Select(line => indent + line.TrimEnd('\r'));
                 return string.Join(separator, lines) + terminator;
             });
-
-            return TemplatePlaceholderRegex().Replace(rendered, match => settings.Get(match.Groups[1].Value));
         }
 
         /// <summary>

@@ -67,11 +67,20 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
                 length += read;
 
                 int start = 0;
-                if (first && length >= Bom.Length && buffer.AsSpan(0, Bom.Length).SequenceEqual(Bom))
+                if (first)
                 {
-                    start = Bom.Length;
+                    // Wait until enough bytes have arrived to decide (a short first read must not skip the check).
+                    if (length < Bom.Length && read > 0)
+                    {
+                        continue;
+                    }
+
+                    first = false;
+                    if (length >= Bom.Length && buffer.AsSpan(0, Bom.Length).SequenceEqual(Bom))
+                    {
+                        start = Bom.Length;
+                    }
                 }
-                first = false;
 
                 while (true)
                 {
@@ -184,7 +193,8 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
                 }
                 else if (line.StartsWith(LayerMarker))
                 {
-                    if (Utf8Parser.TryParse(line[LayerMarker.Length..], out double layerZ, out _))
+                    var value = line[LayerMarker.Length..].Trim((byte)' ');
+                    if (Utf8Parser.TryParse(value, out double layerZ, out int consumed) && consumed == value.Length && double.IsFinite(layerZ))
                     {
                         z = layerZ;
                     }
@@ -231,24 +241,21 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
                 }
 
                 double startX = x, startY = y;
-                if (TryGetWord(line, (byte)'X', out var nx)) x = nx;
-                if (TryGetWord(line, (byte)'Y', out var ny)) y = ny;
+                bool moves = false;
+                if (TryGetWord(line, (byte)'X', out var nx)) { x = nx; moves = true; }
+                if (TryGetWord(line, (byte)'Y', out var ny)) { y = ny; moves = true; }
 
+                // The filament position is tracked in both modes so a later M82 compares against the real value.
                 bool extrudes = false;
                 if (TryGetWord(line, (byte)'E', out var e))
                 {
-                    if (relativeE)
-                    {
-                        extrudes = e > 0;
-                    }
-                    else
-                    {
-                        extrudes = e - lastE > 0;
-                        lastE = e;
-                    }
+                    double delta = relativeE ? e : e - lastE;
+                    lastE += delta;
+                    extrudes = delta > 0;
                 }
 
-                if (!extrudes || active == null || skipType)
+                // A de-retraction (E without X/Y) has no path, so it never widens the box.
+                if (!moves || !extrudes || active == null || skipType)
                 {
                     return;
                 }
@@ -270,6 +277,11 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
                 double startAngle = Math.Atan2(y0 - cy, x0 - cx);
                 double endAngle = Math.Atan2(y1 - cy, x1 - cx);
                 double sweep = clockwise ? Normalise(startAngle - endAngle) : Normalise(endAngle - startAngle);
+                if (sweep < 1e-9 && radius > 0)
+                {
+                    // Coincident endpoints on a real circle mean a full turn, not no turn.
+                    sweep = 2 * Math.PI;
+                }
 
                 for (int quadrant = 0; quadrant < 4; quadrant++)
                 {

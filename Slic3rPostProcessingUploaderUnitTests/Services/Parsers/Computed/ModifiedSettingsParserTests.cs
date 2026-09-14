@@ -81,5 +81,12 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         {
             CollectionAssert.AreEqual(new[] { "wall_loops" }, ModifiedSettingsParser.ParseKeys("post_process;wall_loops").ToList());
         }
+
+        [TestMethod]
+        public void ParseEntriesShouldDropTheBackslashOfAnyEscapeLikeLibslic3r()
+        {
+            // unescape_strings_cstyle keeps the character after a backslash whatever it is.
+            CollectionAssert.AreEqual(new[] { "aqb" }, ModifiedSettingsParser.ParseEntries("\"a\\qb\"").ToList());
+        }
     }
 }

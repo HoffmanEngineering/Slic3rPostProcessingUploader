@@ -15,21 +15,34 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
     /// </summary>
     internal sealed class SavedPresetValues
     {
-        private readonly Dictionary<string, HashSet<string>> values = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<string[]>> values = new(StringComparer.Ordinal);
 
-        internal void Add(string key, string value)
+        internal void Add(string key, string[] elements)
         {
-            if (!values.TryGetValue(key, out var set))
+            if (!values.TryGetValue(key, out var list))
             {
-                values[key] = set = new HashSet<string>(StringComparer.Ordinal);
+                values[key] = list = [];
             }
 
-            set.Add(value.Trim());
+            list.Add(elements.Select(e => e.Trim()).ToArray());
         }
 
-        /// <summary>True when some located preset file saves this key with this value.</summary>
-        public bool IsSaved(string key, string gcodeValue) =>
-            values.TryGetValue(key, out var set) && set.Contains(gcodeValue.Trim());
+        /// <summary>
+        /// True when some located preset file saves this key with this value. Orca writes list settings into the
+        /// G-code with ',' for numeric and point vectors (nozzle_temperature = 215,215; printable_area = 0x0,250x0,…)
+        /// and ';' for string vectors (filament_type = PLA;PETG), so a JSON array matches on either join.
+        /// </summary>
+        public bool IsSaved(string key, string gcodeValue)
+        {
+            if (!values.TryGetValue(key, out var candidates))
+            {
+                return false;
+            }
+
+            var wanted = gcodeValue.Trim();
+            return candidates.Any(elements =>
+                string.Join(",", elements) == wanted || string.Join(";", elements) == wanted);
+        }
     }
 
     /// <summary>
@@ -50,9 +63,15 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
 
             foreach (var preset in presets.Where(p => p.IsUserPreset))
             {
+                if (!IsSafePresetName(preset.Name))
+                {
+                    debugLog($"{preset.Type} preset name \"{preset.Name}\" is not a plain file name; cannot tell saved from unsaved changes");
+                    return null;
+                }
+
                 var candidates = accountDirs
-                    .Select(accountDir => SafePresetPath(accountDir, preset))
-                    .Where(path => path != null && File.Exists(path))
+                    .Select(accountDir => Path.Combine(accountDir, preset.Type, preset.Name + ".json"))
+                    .Where(File.Exists)
                     .ToList();
 
                 if (candidates.Count != 1)
@@ -63,7 +82,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
 
                 try
                 {
-                    ReadValues(candidates[0]!, saved);
+                    ReadValues(candidates[0], saved);
                 }
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException)
                 {
@@ -100,29 +119,21 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
         }
 
         /// <summary>
-        /// The preset name comes from the G-code, so it is treated as untrusted: it must be a plain file name and the
-        /// resulting path must stay inside the preset-type folder.
+        /// The preset name comes from the G-code, so it is treated as untrusted: only a plain file name (no separators
+        /// of either platform, no drive letter, no traversal, no characters the host rejects) may be joined onto the
+        /// preset-type folder. Anything else is reported as not found. The user's own config directory is the trust
+        /// boundary; links planted inside it are not defended against.
         /// </summary>
-        private static string? SafePresetPath(string accountDir, PresetIdentity preset)
-        {
-            var name = preset.Name;
-            if (name.Length == 0
-                || name != Path.GetFileName(name)
-                || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
-                || name == "." || name == "..")
-            {
-                return null;
-            }
-
-            var typeDir = Path.GetFullPath(Path.Combine(accountDir, preset.Type));
-            var path = Path.GetFullPath(Path.Combine(typeDir, name + ".json"));
-            return path.StartsWith(typeDir + Path.DirectorySeparatorChar, StringComparison.Ordinal) ? path : null;
-        }
+        internal static bool IsSafePresetName(string name) =>
+            name.Length > 0
+            && name != "." && name != ".."
+            && name.IndexOfAny(['/', '\\', ':']) < 0
+            && name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
 
         /// <summary>
         /// Reads the flat key/value pairs of a preset file. Real preset files can contain duplicate keys, which
-        /// <see cref="JsonDocument"/> tolerates (the first occurrence wins here). Lists are joined with ';' to match how
-        /// Orca serialises them into the G-code config block; nested objects are not settings and are skipped.
+        /// <see cref="JsonDocument"/> tolerates (the first occurrence wins here). Nested objects are not settings and
+        /// are skipped.
         /// </summary>
         private static void ReadValues(string path, SavedPresetValues saved)
         {
@@ -141,19 +152,24 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
                     continue;
                 }
 
-                var value = Normalise(property.Value);
-                if (value != null)
+                var elements = Elements(property.Value);
+                if (elements != null)
                 {
-                    saved.Add(property.Name, value);
+                    saved.Add(property.Name, elements);
                 }
             }
         }
 
-        private static string? Normalise(JsonElement element) => element.ValueKind switch
+        private static string[]? Elements(JsonElement element) => element.ValueKind switch
+        {
+            JsonValueKind.Array => element.EnumerateArray().Select(Scalar).OfType<string>().ToArray(),
+            _ => Scalar(element) is { } scalar ? [scalar] : null,
+        };
+
+        private static string? Scalar(JsonElement element) => element.ValueKind switch
         {
             JsonValueKind.String => element.GetString(),
             JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False => element.GetRawText(),
-            JsonValueKind.Array => string.Join(";", element.EnumerateArray().Select(Normalise).Where(v => v != null)),
             _ => null,
         };
     }

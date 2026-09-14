@@ -298,5 +298,65 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
             public override int Read(byte[] buffer, int offset, int count) => throw new IOException("disk on fire");
             public override int Read(Span<byte> buffer) => throw new IOException("disk on fire");
         }
+
+        // ---- Cases from the adversarial review ----
+
+        [TestMethod]
+        public void ShouldNotAddAPointForAnExtrusionOnlyMove()
+        {
+            // Orca de-retracts (G1 E.7) at the travel destination before announcing the next ;TYPE:; a move with no
+            // X/Y has no path and must not widen the box, whatever the current role is.
+            var gcode = ";Z:0.2\n; printing object A id:0 copy 0\n" + Square + "; stop printing object A id:0 copy 0\n" +
+                "; printing object B id:1 copy 0\nG1 X150 Y150 F18000\nG1 E.7 F1500\n;TYPE:Brim\nG1 X151 Y151 E0.5\n;TYPE:Outer wall\nG1 X50 Y50 E0.5\nG1 X60 Y60 E0.5\n";
+
+            var result = Scan(gcode);
+
+            AssertBox(result[1], 50, 60, 50, 60, 0.2);
+        }
+
+        [TestMethod]
+        public void ShouldTreatACoincidentEndpointArcAsAFullCircle()
+        {
+            var body = ";TYPE:Outer wall\nG1 X10 Y0 E0.1\nG3 X10 Y0 I-10 J0 E1\n";
+
+            var result = Scan(Layer("0.2", body));
+
+            AssertBox(result[0], -10, 10, -10, 10, 0.2, tolerance: 0.001);
+        }
+
+        [TestMethod]
+        public void ShouldKeepTheEPositionAcrossARelativeToAbsoluteSwitch()
+        {
+            // G92 E0, extrude 5 relatively, then in absolute mode E4 is a retraction, not extrusion.
+            var body = "G92 E0\nM83\n;TYPE:Outer wall\nG1 X10 Y10 E5\nM82\nG1 X90 Y90 E4\nG1 X20 Y20 E6\n";
+
+            var result = Scan(Layer("0.2", body));
+
+            AssertBox(result[0], 10, 20, 10, 20, 0.2);
+        }
+
+        [TestMethod]
+        public void ShouldStripTheBomEvenWhenTheFirstReadIsShort()
+        {
+            var bytes = Encoding.UTF8.GetBytes("﻿" + Layer("0.2", Square));
+            using var stream = new OneByteAtATimeStream(bytes);
+
+            var result = ObjectBoundsScanner.Scan(stream, _ => { });
+
+            AssertBox(result[0], 10, 20, 10, 20, 0.2);
+        }
+
+        [DataTestMethod]
+        [DataRow(";Z:12junk")]
+        [DataRow(";Z:NaN")]
+        [DataRow(";Z:")]
+        public void ShouldIgnoreMalformedLayerHeights(string layerLine)
+        {
+            var gcode = ";Z:0.2\n" + layerLine + "\n; printing object Cube id:0 copy 0\n" + Square;
+
+            var result = Scan(gcode);
+
+            AssertBox(result[0], 10, 20, 10, 20, 0.2);
+        }
     }
 }

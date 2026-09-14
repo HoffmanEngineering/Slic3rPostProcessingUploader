@@ -67,7 +67,8 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
             Assert.IsNotNull(saved);
             Assert.IsTrue(saved.IsSaved("wall_loops", "3"));
             Assert.IsTrue(saved.IsSaved("nozzle_temperature", "215"));
-            Assert.IsTrue(saved.IsSaved("printable_area", "0x0;250x0;250x210;0x210"));
+            // Orca writes numeric/point vectors with , in the G-code config block.
+            Assert.IsTrue(saved.IsSaved("printable_area", "0x0,250x0,250x210,0x210"));
         }
 
         [TestMethod]
@@ -121,7 +122,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         }
 
         [TestMethod]
-        public void ShouldSkipARootWhoseUserFolderCannotBeEnumerated()
+        public void ShouldSkipARootWhoseUserEntryIsNotADirectory()
         {
             var broken = Path.Combine(root, "broken");
             Directory.CreateDirectory(broken);
@@ -178,20 +179,35 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
             Assert.IsTrue(saved.IsSaved("wall_loops", "3"));
         }
 
-        [DataTestMethod]
-        [DataRow("..\\P")]
-        [DataRow("../P")]
-        [DataRow("sub/P")]
-        [DataRow("C:\\P")]
-        [DataRow("P?")]
-        [DataRow("")]
-        public void ShouldTreatUnsafePresetNamesAsNotFound(string name)
+        [TestMethod]
+        public void ShouldMatchArraysAgainstEitherOfOrcasListSeparators()
         {
-            // A file that would be reachable if the name were used unchecked.
-            WritePreset("default", "process", "P", """{"wall_loops": "3"}""");
-            File.WriteAllText(Path.Combine(root, "user", "default", "P.json"), """{"wall_loops": "9"}""");
+            // Numeric vectors are ','-joined in the G-code (nozzle_temperature = 215,215); string vectors ';'-joined.
+            WritePreset("default", "filament", "F", """{"nozzle_temperature": ["215", "215"], "filament_type": ["PLA", "PETG"]}""");
 
-            Assert.IsNull(Locator().FindSavedValues([User("process", name)]));
+            var saved = Locator().FindSavedValues([User("filament", "F")]);
+
+            Assert.IsNotNull(saved);
+            Assert.IsTrue(saved.IsSaved("nozzle_temperature", "215,215"));
+            Assert.IsTrue(saved.IsSaved("filament_type", "PLA;PETG"));
+            Assert.IsFalse(saved.IsSaved("nozzle_temperature", "215,220"));
+        }
+
+        [DataTestMethod]
+        [DataRow("P", true)]
+        [DataRow("0.16 High Quality @U1 (0.4 nozzle) - 3DPrintLog", true)]
+        [DataRow("", false)]
+        [DataRow(".", false)]
+        [DataRow("..", false)]
+        [DataRow("../P", false)]
+        [DataRow(@"..\P", false)]
+        [DataRow("sub/P", false)]
+        [DataRow(@"sub\P", false)]
+        [DataRow(@"C:\P", false)]
+        [DataRow("P\0", false)]
+        public void ShouldOnlyAcceptPlainFileNamesAsPresetNames(string name, bool expected)
+        {
+            Assert.AreEqual(expected, UserPresetLocator.IsSafePresetName(name));
         }
     }
 }

@@ -184,5 +184,25 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers
             using var reader = new StreamReader(options.OpenFullGcode(), Encoding.UTF8);
             Assert.AreEqual("; héllo", reader.ReadLine());
         }
+
+        [TestMethod]
+        public void ShouldNotTreatPlaceholderSyntaxInsideAStandaloneValueAsATemplate()
+        {
+            var parser = new TestParser("Models:\n  {{models}}\n", Constant("models", "name {{layer_height}}"));
+
+            var result = parser.ParseGcode(Gcode);
+
+            Assert.AreEqual("Models:\n  name {{layer_height}}\n", result.settings.note);
+        }
+
+        [TestMethod]
+        public void ShouldNotTreatPlaceholderSyntaxInsideAnInlineValueAsATemplate()
+        {
+            var parser = new TestParser("Models: {{models}}", Constant("models", "name {{layer_height}}"));
+
+            var result = parser.ParseGcode(Gcode);
+
+            Assert.AreEqual("Models: name {{layer_height}}", result.settings.note);
+        }
     }
 }
