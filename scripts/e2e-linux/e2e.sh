@@ -27,6 +27,20 @@ wclick() { # wclick <window title regex> <x> <y> [sleep] — coordinates relativ
     local w; w=$(xdotool search --name "$1" 2>/dev/null | head -1 || true); [ -n "$w" ] || fail "no window '$1' to click in"
     xdotool mousemove --window "$w" "$2" "$3" click 1; sleep "${4:-2}"
 }
+main_window() { # the live "… - OrcaSlicer" window: the modified ("*…") one when a model is loaded, else the largest
+    local best="" best_area=0 w area name
+    for w in $(xdotool search --name " - OrcaSlicer$" 2>/dev/null || true); do
+        name=$(xdotool getwindowname "$w" 2>/dev/null || true)
+        case "$name" in \**) echo "$w"; return;; esac
+        eval "$(xdotool getwindowgeometry --shell "$w" 2>/dev/null)"; area=$(( ${WIDTH:-0} * ${HEIGHT:-0} ))
+        [ "$area" -gt "$best_area" ] && { best=$w; best_area=$area; }
+    done
+    echo "$best"
+}
+place_main_window() { # place_main_window <x> <y> <w> <h>
+    local m; m=$(main_window); [ -n "$m" ] || fail "no main window"
+    xdotool windowmove --sync "$m" "$1" "$2"; xdotool windowsize --sync "$m" "$3" "$4"; sleep 2
+}
 wait_window() { # wait_window <title regex> [timeout s]
     local deadline=$(( $(date +%s) + ${2:-60} ))
     until xdotool search --name "$1" >/dev/null 2>&1; do
@@ -55,9 +69,7 @@ launch_orca() { # launch_orca <log name> [model file to open]
     done
     wait_window " - OrcaSlicer$" 120   # "Untitled - OrcaSlicer" or "<model> - OrcaSlicer"
     sleep 6
-    # Pin the main window where the absolute coordinates below expect it.
-    local m; m=$(xdotool search --name " - OrcaSlicer$" | head -1)
-    xdotool windowmove --sync "$m" 200 100; xdotool windowsize --sync "$m" 1200 800; sleep 2
+    place_main_window 200 100 1200 800   # where the absolute coordinates below expect it
 }
 write_cube_stl() {
     local s=20
@@ -80,7 +92,7 @@ stop_orca() {
 # ---- 0. Inputs -------------------------------------------------------------------------------------
 [ -f /uploader ] || fail "/uploader is missing (mount the linux-x64 build)"
 # Work on a copy: the mount is read-only and step 3 replaces the file in place.
-UPLOADER=/opt/uploader; cp /uploader "$UPLOADER"; chmod +x "$UPLOADER"
+UPLOADER=/opt/3DPrintLog/Slic3rPostProcessingUploader; mkdir -p "$(dirname "$UPLOADER")"; cp /uploader "$UPLOADER"; chmod +x "$UPLOADER"
 mkdir -p /work && cd /work
 if [ -f /appimage ]; then cp /appimage ./slicer.AppImage
 elif [ -n "${APPIMAGE_URL:-}" ]; then curl -sL -o slicer.AppImage "$APPIMAGE_URL"
@@ -143,8 +155,19 @@ launch_orca "with-overrides" /tmp/cube.stl
 click 330 155 1 4                   # Prepare tab
 click 246 458 1 3                   # process preset dropdown
 shot "preset-dropdown"
-click 410 633 1 4                   # "0.20mm Standard @MyKlipper - 3DPrintLog" (first user preset)
+click 410 633 1 4                   # "0.20mm Standard @MyKlipper - 3DPrintLog"
 shot "cube-ready"
+
+# Documentation shot: the preset's Others tab with the post-processing script filled in. That field only
+# exists in Advanced mode, and sits near the bottom of a long page, so grow the window for the capture.
+place_main_window 200 0 1200 980
+click 572 314 1 3                   # Simple/Advanced toggle → Advanced
+click 632 397 1 3                   # Others tab
+xdotool mousemove 430 700; for _ in $(seq 1 40); do xdotool click 5; done; sleep 1
+xdotool click 4 click 4 click 4; sleep 2
+shot "others-post-processing"
+click 240 397 1 2                   # back to Quality tab (keeps later coordinates valid)
+place_main_window 200 100 1200 800
 click 1102 155 1 25                 # Slice plate
 shot "sliced"
 click 1275 155 1 6                  # Export G-code file

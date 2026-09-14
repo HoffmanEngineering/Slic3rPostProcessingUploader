@@ -153,6 +153,10 @@ It does not touch the slicer's built-in profiles. For every process profile the 
 
 ![OrcaSlicer process dropdown listing the "- 3DPrintLog" user presets](docs/images/wizard-process-presets.png)
 
+Each of those presets carries the uploader (with the flags you chose) as its post-processing script — visible under **Others → Post-processing Scripts** when the slicer is in Advanced mode:
+
+![The preset's Others tab showing the uploader in Post-processing Scripts](docs/images/wizard-post-processing-script.png)
+
 ### Wizard Options
 
 ```bash
