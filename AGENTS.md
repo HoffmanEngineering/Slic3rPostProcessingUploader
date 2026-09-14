@@ -74,6 +74,10 @@ Snapshot.Match(
 
 Keep fixtures compact by replacing unused toolpath bodies with a short omission marker while preserving the header, thumbnails, print summary, and trailing configuration. Retain one untrimmed fixture for `GcodeWindowTests`.
 
+### Installer tests
+
+Installer unit tests run against pruned copies of real slicer config trees under `Slic3rPostProcessingUploaderUnitTests/TestData/Installer/{slicer}/` (see `InstallerFixture`). Two manual end-to-end checks drive the real wizard against a real OrcaSlicer — `scripts/e2e-linux/run.ps1` (Docker, headless) and `scripts/e2e-windows/run.ps1` (Windows Sandbox, real `%APPDATA%` and a quoted `Program Files` path). They are pre-release checks, not CI; each README explains what it proves and how to recalibrate click coordinates when the slicer's layout changes.
+
 ## Adding a New Slicer
 
 1. Create `Services/Parsers/{SlicerName}/` directory

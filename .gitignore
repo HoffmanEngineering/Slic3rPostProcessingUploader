@@ -372,3 +372,7 @@ docs/superpowers/
 
 scripts/e2e-linux/out/
 scripts/e2e-linux/cache/
+scripts/e2e-windows/out/
+scripts/e2e-windows/cache/
+scripts/e2e-windows/out/
+scripts/e2e-windows/cache/
