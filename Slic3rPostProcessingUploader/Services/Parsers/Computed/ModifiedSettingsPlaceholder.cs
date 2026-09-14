@@ -5,9 +5,11 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
     /// keys in <c>different_settings_to_system</c> (live preset vs. system parent, so unsaved plater edits count);
     /// each key's value is taken from the config block so the note reads "sparse_infill_density = 8%".
     ///
-    /// When the user's own preset files can be found on this machine, the list is split into changes saved in a
-    /// preset and changes that were only made in the plater. When they cannot (other machine, ambiguous names,
-    /// unreadable files) the flat list is shown instead — never a wrong classification.
+    /// When the user's own preset files can be found on this machine, only the changes that were made in the plater
+    /// and never saved are listed: those are the ones a reader cannot recover by selecting the same presets again.
+    /// Changes saved in a preset are dropped, and the section vanishes when nothing was unsaved. When the files
+    /// cannot be found (other machine, ambiguous names, unreadable files) the flat list is shown instead — never a
+    /// wrong classification.
     /// </summary>
     internal static class ModifiedSettingsPlaceholder
     {
@@ -35,21 +37,13 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
                 return Section($"{heading} {string.Join(", ", changes.Select(c => c.Text))}");
             }
 
-            var savedChanges = changes.Where(c => saved.IsSaved(c.Key, settings.Get(c.Key))).Select(c => c.Text).ToList();
             var unsavedChanges = changes.Where(c => !saved.IsSaved(c.Key, settings.Get(c.Key))).Select(c => c.Text).ToList();
-
-            var lines = new List<string> { heading };
-            if (savedChanges.Count > 0)
+            if (unsavedChanges.Count == 0)
             {
-                lines.Add($"  Saved in profile: {string.Join(", ", savedChanges)}");
+                return string.Empty;
             }
 
-            if (unsavedChanges.Count > 0)
-            {
-                lines.Add($"  Unsaved changes:  {string.Join(", ", unsavedChanges)}");
-            }
-
-            return Section(lines);
+            return Section(heading, $"  Unsaved changes: {string.Join(", ", unsavedChanges)}");
         }
 
         /// <summary>

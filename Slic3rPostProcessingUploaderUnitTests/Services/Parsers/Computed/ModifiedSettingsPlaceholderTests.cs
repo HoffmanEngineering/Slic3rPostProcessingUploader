@@ -34,7 +34,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
                 "; inherits_group = ;;\n" +
                 "; wall_loops = 3\n");
 
-            Assert.AreEqual("Profile Changes:\n  Changed from profile:\n    Unsaved changes:  wall_loops = 3\n", note);
+            Assert.AreEqual("Profile Changes:\n  Changed from profile:\n    Unsaved changes: wall_loops = 3\n", note);
         }
 
         [TestMethod]
@@ -110,7 +110,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
             "; nozzle_temperature = 215\n";
 
         [TestMethod]
-        public void ShouldSplitSavedAndUnsavedChangesWhenThePresetFilesAreFound()
+        public void ShouldListOnlyTheUnsavedChangesWhenThePresetFilesAreFound()
         {
             WritePreset("process", "0.16 High Quality @U1 - 3DPrintLog", """{"sparse_infill_density": "8%"}""");
             WritePreset("filament", "My PLA", """{"nozzle_temperature": ["215"]}""");
@@ -120,24 +120,19 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
             Assert.AreEqual(
                 "Profile Changes:\n" +
                 "  Changed from \"0.16 High Quality @U1\":\n" +
-                "    Saved in profile: sparse_infill_density = 8%, nozzle_temperature = 215\n" +
-                "    Unsaved changes:  wall_loops = 3\n",
+                "    Unsaved changes: wall_loops = 3\n",
                 note);
         }
 
         [TestMethod]
-        public void ShouldOmitTheUnsavedLineWhenEverythingIsSaved()
+        public void ShouldOmitTheSectionWhenEverythingIsSaved()
         {
             WritePreset("process", "0.16 High Quality @U1 - 3DPrintLog", """{"sparse_infill_density": "8%", "wall_loops": "3"}""");
             WritePreset("filament", "My PLA", """{"nozzle_temperature": ["215"]}""");
 
             var note = RenderWithRoots(TwoChangesGcode, root);
 
-            Assert.AreEqual(
-                "Profile Changes:\n" +
-                "  Changed from \"0.16 High Quality @U1\":\n" +
-                "    Saved in profile: sparse_infill_density = 8%, wall_loops = 3, nozzle_temperature = 215\n",
-                note);
+            Assert.AreEqual(string.Empty, note);
         }
 
         [TestMethod]
@@ -148,7 +143,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
 
             var note = RenderWithRoots(TwoChangesGcode, root);
 
-            StringAssert.Contains(note, "    Unsaved changes:  sparse_infill_density = 8%");
+            StringAssert.Contains(note, "    Unsaved changes: sparse_infill_density = 8%");
         }
 
         [TestMethod]
