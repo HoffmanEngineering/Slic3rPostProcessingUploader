@@ -77,6 +77,76 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
             AssertBox(result[1], 50, 60, 50, 60, 0.2);
         }
 
+        [TestMethod]
+        public void ShouldReadBambuStudioMarkersWhichCarryOnlyALabelId()
+        {
+            var gcode = "; Z_HEIGHT: 0.2\n; start printing object, unique label id: 67\n" + Square + "; stop printing object, unique label id: 67\n" +
+                "; start printing object, unique label id: 100\n;TYPE:Outer wall\nG1 X50 Y50 E0.5\nG1 X60 Y60 E0.5\n; stop printing object, unique label id: 100\n" +
+                "; Z_HEIGHT: 0.4\n; start printing object, unique label id: 67\n;TYPE:Outer wall\nG1 X10 Y10 E0.5\n; stop printing object, unique label id: 67\n";
+
+            var result = Scan(gcode);
+
+            Assert.AreEqual(2, result.Count);
+            Assert.AreEqual("Object 67", result[0].Name);
+            AssertBox(result[0], 10, 20, 10, 20, 0.4);
+            Assert.AreEqual("Object 100", result[1].Name);
+            AssertBox(result[1], 50, 60, 50, 60, 0.2);
+        }
+
+        [TestMethod]
+        public void ShouldReadPrusaSlicerFirmwareLabelsWhereM486NamesTheInstanceOnce()
+        {
+            var gcode = "M486 S0\nM486 Acube20.stl\nM486 S1\nM486 Acube20.stl\nM486 S-1\n" +
+                ";Z:0.2\nM486 S0\n" + Square + "M486 S-1\n" +
+                "M486 S1\n;TYPE:Outer wall\nG1 X50 Y50 E0.5\nG1 X60 Y60 E0.5\nM486 S-1\n" +
+                ";TYPE:Outer wall\nG1 X90 Y90 E0.5\n";
+
+            var result = Scan(gcode);
+
+            Assert.AreEqual(2, result.Count);
+            Assert.AreEqual("cube20.stl", result[0].Name);
+            AssertBox(result[0], 10, 20, 10, 20, 0.2);
+            Assert.AreEqual("cube20.stl", result[1].Name);
+            AssertBox(result[1], 50, 60, 50, 60, 0.2);
+        }
+
+        [TestMethod]
+        public void ShouldNameAnUnlabelledM486InstanceByItsIndex()
+        {
+            var result = Scan(";Z:0.2\nM486 S3\n" + Square + "M486 S-1\n");
+
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual("Object 3", result[0].Name);
+        }
+
+        [TestMethod]
+        public void ShouldReadKlipperExcludeObjectMarkers()
+        {
+            var gcode = ";Z:0.2\nEXCLUDE_OBJECT_START NAME=cube20.stl_id_0_copy_0\n" + Square + "EXCLUDE_OBJECT_END NAME=cube20.stl_id_0_copy_0\n" +
+                ";TYPE:Outer wall\nG1 X90 Y90 E0.5\n";
+
+            var result = Scan(gcode);
+
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual("cube20.stl", result[0].Name);
+            AssertBox(result[0], 10, 20, 10, 20, 0.2);
+        }
+
+        [TestMethod]
+        public void ShouldLetCommentMarkersWinWhenOrcaAlsoWritesM486ForTheSameInstance()
+        {
+            // Orca's Marlin flavour defines every instance with M486 up front, then brackets each layer with both the
+            // comment and the M486 select; the comment carries the real name and must not lose its moves to M486.
+            var gcode = "M486 S0\nM486 ACube_id_0_copy_0\nM486 S-1\n" +
+                ";Z:0.2\n; printing object Cube id:0 copy 0\nM486 S0\n" + Square + "; stop printing object Cube id:0 copy 0\nM486 S-1\n";
+
+            var result = Scan(gcode);
+
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual("Cube", result[0].Name);
+            AssertBox(result[0], 10, 20, 10, 20, 0.2);
+        }
+
         [DataTestMethod]
         [DataRow("Brim")]
         [DataRow("Skirt")]

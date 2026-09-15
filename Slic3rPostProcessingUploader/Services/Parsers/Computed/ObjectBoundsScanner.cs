@@ -1,5 +1,7 @@
 using System.Buffers.Text;
+using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
 {
@@ -8,7 +10,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
     /// </summary>
     internal sealed class ObjectBounds(string name)
     {
-        public string Name { get; } = name;
+        public string Name { get; internal set; } = name;
         public double MinX { get; private set; } = double.PositiveInfinity;
         public double MaxX { get; private set; } = double.NegativeInfinity;
         public double MinY { get; private set; } = double.PositiveInfinity;
@@ -28,23 +30,44 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
     }
 
     /// <summary>
-    /// Streams a whole G-code file and computes a bounding box per object instance. Orca brackets each instance's
-    /// toolpath with "; printing object &lt;name&gt; id:&lt;n&gt; copy &lt;m&gt;" and "; stop printing object …" on every layer
-    /// (gcode_label_objects, on by default), tags extrusion runs with ";TYPE:", and announces layers with ";Z:".
+    /// Streams a whole G-code file and computes a bounding box per object instance. Every supported slicer tags
+    /// extrusion runs with ";TYPE:" and brackets each instance's toolpath on every layer, each in its own dialect:
+    /// <list type="bullet">
+    /// <item>Orca, and PrusaSlicer in octoprint mode: "; printing object &lt;name&gt; id:&lt;n&gt; copy &lt;m&gt;" …
+    /// "; stop printing object …", layers announced with ";Z:"</item>
+    /// <item>Bambu Studio: "; start printing object, unique label id: &lt;n&gt;" … "; stop printing object, unique label
+    /// id: &lt;n&gt;", layers announced with "; Z_HEIGHT:". The file never names the objects, so an instance is "Object
+    /// &lt;n&gt;"</item>
+    /// <item>PrusaSlicer firmware mode: "M486 S&lt;n&gt;" starts instance n (named once, up front, by "M486 A&lt;name&gt;"),
+    /// "M486 S-1" stops; Klipper flavour uses "EXCLUDE_OBJECT_START NAME=…" / "EXCLUDE_OBJECT_END"</item>
+    /// </list>
+    /// Orca writes the comment markers and the firmware commands for the same instance in one file, so once a comment
+    /// marker has been seen the firmware commands are ignored: the comments carry the real names.
     /// Only extruding moves count, and brim, skirt, supports and towers are left out so the box is the model itself.
     ///
     /// The scan works on bytes to stay cheap on 100+ MB files: numbers and keywords are parsed in place and only
     /// object names are decoded. The file is assumed to be UTF-8 (Orca's output); invalid sequences in a name become
     /// replacement characters.
     /// </summary>
-    internal static class ObjectBoundsScanner
+    internal static partial class ObjectBoundsScanner
     {
         public const int BufferSize = 1 << 20;
 
+        /// <summary>
+        /// Firmware object names are the comment marker flattened for the firmware's character set:
+        /// "3DBenchy.drc_id_0_copy_0". The suffix identifies the instance, not the model.
+        /// </summary>
+        [GeneratedRegex(@"_id_\d+_copy_\d+$")]
+        private static partial Regex FirmwareInstanceSuffix();
+
         private static ReadOnlySpan<byte> StartMarker => "; printing object "u8;
         private static ReadOnlySpan<byte> StopMarker => "; stop printing object"u8;
+        private static ReadOnlySpan<byte> BambuStartMarker => "; start printing object, unique label id:"u8;
+        private static ReadOnlySpan<byte> KlipperStartMarker => "EXCLUDE_OBJECT_START NAME="u8;
+        private static ReadOnlySpan<byte> KlipperStopMarker => "EXCLUDE_OBJECT_END"u8;
         private static ReadOnlySpan<byte> TypeMarker => ";TYPE:"u8;
         private static ReadOnlySpan<byte> LayerMarker => ";Z:"u8;
+        private static ReadOnlySpan<byte> BambuLayerMarker => "; Z_HEIGHT:"u8;
         private static ReadOnlySpan<byte> Bom => [0xEF, 0xBB, 0xBF];
 
         // Extrusion roles that are not part of the model. Compared as prefixes ("Support interface" etc.).
@@ -139,6 +162,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
             private readonly Dictionary<string, ObjectBounds> instances = new(StringComparer.Ordinal);
             private readonly List<ObjectBounds> order = [];
             private ObjectBounds? active;
+            private bool commentMarkersSeen;
             private bool skipType;
             private double x, y, z;
             private bool relativeE = true;
@@ -165,6 +189,55 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
                 {
                     if (IsCommand(line, "M82"u8)) relativeE = false;
                     else if (IsCommand(line, "M83"u8)) relativeE = true;
+                    else if (IsCommand(line, "M486"u8) && !commentMarkersSeen) ProcessM486(line["M486"u8.Length..].TrimStart((byte)' '));
+                }
+                else if (commentMarkersSeen)
+                {
+                    return;
+                }
+                else if (line.StartsWith(KlipperStartMarker))
+                {
+                    var name = Encoding.UTF8.GetString(line[KlipperStartMarker.Length..].Trim((byte)' '));
+                    Activate("klipper:" + name, FirmwareInstanceSuffix().Replace(name, string.Empty));
+                }
+                else if (line.StartsWith(KlipperStopMarker))
+                {
+                    active = null;
+                }
+            }
+
+            /// <summary>
+            /// "M486 S&lt;n&gt;" selects instance n (S-1 deselects); "M486 A&lt;name&gt;" names the selected instance, which
+            /// PrusaSlicer does once for every instance before the first layer.
+            /// </summary>
+            private void ProcessM486(ReadOnlySpan<byte> arguments)
+            {
+                if (arguments.Length < 2)
+                {
+                    return;
+                }
+
+                if (arguments[0] == 'S')
+                {
+                    var value = arguments[1..];
+                    int end = value.IndexOf((byte)' ');
+                    if (end >= 0)
+                    {
+                        value = value[..end];
+                    }
+
+                    if (Utf8Parser.TryParse(value, out int index, out int consumed) && consumed == value.Length && index >= 0)
+                    {
+                        Activate("m486:" + index.ToString(CultureInfo.InvariantCulture), "Object " + index.ToString(CultureInfo.InvariantCulture));
+                    }
+                    else
+                    {
+                        active = null;
+                    }
+                }
+                else if (arguments[0] == 'A' && active != null)
+                {
+                    active.Name = FirmwareInstanceSuffix().Replace(Encoding.UTF8.GetString(arguments[1..].Trim((byte)' ')), string.Empty);
                 }
             }
 
@@ -172,11 +245,22 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
             {
                 if (line.StartsWith(StartMarker))
                 {
+                    commentMarkersSeen = true;
                     StartInstance(line[StartMarker.Length..]);
+                }
+                else if (line.StartsWith(BambuStartMarker))
+                {
+                    commentMarkersSeen = true;
+                    var id = Encoding.UTF8.GetString(line[BambuStartMarker.Length..].Trim((byte)' '));
+                    Activate("bambu:" + id, "Object " + id);
                 }
                 else if (line.StartsWith(StopMarker))
                 {
                     active = null;
+                }
+                else if (line.StartsWith(BambuLayerMarker))
+                {
+                    SetLayer(line[BambuLayerMarker.Length..]);
                 }
                 else if (line.StartsWith(TypeMarker))
                 {
@@ -193,11 +277,30 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
                 }
                 else if (line.StartsWith(LayerMarker))
                 {
-                    var value = line[LayerMarker.Length..].Trim((byte)' ');
-                    if (Utf8Parser.TryParse(value, out double layerZ, out int consumed) && consumed == value.Length && double.IsFinite(layerZ))
-                    {
-                        z = layerZ;
-                    }
+                    SetLayer(line[LayerMarker.Length..]);
+                }
+            }
+
+            private void SetLayer(ReadOnlySpan<byte> value)
+            {
+                value = value.Trim((byte)' ');
+                if (Utf8Parser.TryParse(value, out double layerZ, out int consumed) && consumed == value.Length && double.IsFinite(layerZ))
+                {
+                    z = layerZ;
+                }
+            }
+
+            /// <summary>
+            /// Makes the instance identified by <paramref name="key"/> the one that receives moves, creating it under
+            /// <paramref name="name"/> on first sight. Keys are prefixed per dialect so an id never collides across them.
+            /// </summary>
+            private void Activate(string key, string name)
+            {
+                if (!instances.TryGetValue(key, out active))
+                {
+                    active = new ObjectBounds(name);
+                    instances[key] = active;
+                    order.Add(active);
                 }
             }
 
@@ -216,13 +319,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
                     return;
                 }
 
-                var key = Encoding.UTF8.GetString(marker);
-                if (!instances.TryGetValue(key, out active))
-                {
-                    active = new ObjectBounds(Encoding.UTF8.GetString(marker[..idAt]));
-                    instances[key] = active;
-                    order.Add(active);
-                }
+                Activate("orca:" + Encoding.UTF8.GetString(marker), Encoding.UTF8.GetString(marker[..idAt]));
             }
 
             private void ProcessMove(ReadOnlySpan<byte> line)

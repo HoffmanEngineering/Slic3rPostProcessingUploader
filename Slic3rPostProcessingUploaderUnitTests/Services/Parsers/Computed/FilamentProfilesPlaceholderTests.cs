@@ -47,6 +47,17 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         }
 
         [TestMethod]
+        public void ShouldApplyASingleVendorToEverySlotAsPrusaSlicerWritesIt()
+        {
+            var note = Render(
+                "; filament_settings_id = \"Prusament PLA @MK4S\";\"Prusament PETG @MK4S\"\n" +
+                "; filament_type = PLA;PETG\n" +
+                "; filament_vendor = Prusa Polymers\n");
+
+            Assert.AreEqual("Prusament PLA @MK4S (PLA, Prusa Polymers), Prusament PETG @MK4S (PETG, Prusa Polymers)", note);
+        }
+
+        [TestMethod]
         public void ShouldOmitTypeAndVendorWhenTheyAreMissing()
         {
             Assert.AreEqual("A, B", Render("; filament_settings_id = A;B\n"));

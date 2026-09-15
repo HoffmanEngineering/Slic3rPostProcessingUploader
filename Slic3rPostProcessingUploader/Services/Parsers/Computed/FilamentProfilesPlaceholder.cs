@@ -27,7 +27,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
                     continue;
                 }
 
-                var profile = new Profile(names[i], types.ElementAtOrDefault(i) ?? string.Empty, vendors.ElementAtOrDefault(i) ?? string.Empty);
+                var profile = new Profile(names[i], SlotValue(types, i), SlotValue(vendors, i));
                 int index = counts.FindIndex(c => c.Profile == profile);
                 if (index < 0)
                 {
@@ -41,6 +41,13 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
 
             return string.Join(", ", counts.Select(c => Describe(c.Profile) + (c.Count > 1 ? $" ×{c.Count}" : string.Empty)));
         }
+
+        /// <summary>
+        /// PrusaSlicer's filament_vendor is a single string, not one per slot (filament_vendor = Prusa Polymers on a
+        /// five-slot XL), so a lone entry applies to every slot.
+        /// </summary>
+        private static string SlotValue(IReadOnlyList<string> values, int slot) =>
+            values.Count == 1 ? values[0] : values.ElementAtOrDefault(slot) ?? string.Empty;
 
         private static string Describe(Profile profile)
         {
