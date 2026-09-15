@@ -367,8 +367,9 @@ FodyWeavers.xsd
 # Git worktrees
 .worktrees/
 .claude/worktrees/
-# Local design notes
+# Local design notes and plans (already-tracked files under docs/plans stay tracked)
 docs/superpowers/
+docs/plans/
 
 scripts/e2e-linux/out/
 scripts/e2e-linux/cache/

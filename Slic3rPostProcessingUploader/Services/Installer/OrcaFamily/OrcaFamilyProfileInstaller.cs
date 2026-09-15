@@ -18,7 +18,7 @@ namespace Slic3rPostProcessingUploader.Services.Installer.OrcaFamily
         }
 
         /// <summary>The slicer's config directory, or null when the home directory cannot be determined.</summary>
-        protected string? GetConfigRoot() =>
+        internal string? GetConfigRoot() =>
             _configRootOverride ?? SlicerConfigRoot.ForCurrentMachine(SlicerDirectoryName);
 
         // Exposed for testing only

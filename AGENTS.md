@@ -68,6 +68,17 @@ Rules the installer must keep, because users' own profiles live next to ours:
 
 Templates use `{{setting_name}}` placeholders that get replaced with values from G-code comments like `; setting_name = value`. Built-in templates are `.txt` files under `Slic3rPostProcessingUploader/Templates/`; custom ones come from `--template <path>` via `NoteTemplateFromFile`. Both implement `INoteTemplate`.
 
+A placeholder that is alone on its line renders as a block: each line of the value inherits the indentation, CRLF templates keep CRLF, and an empty value removes the line (the heading above stays). Inline placeholders are substituted verbatim.
+
+### Computed placeholders
+
+`Services/Parsers/Computed/` holds placeholders whose value comes from code (`ComputedPlaceholder(Key, Render)`), currently `{{filament_profiles}}` (distinct filament profiles with counts), `{{models}}` (per-object size from a streaming scan of the whole file, `ObjectBoundsScanner`) and `{{modified_settings}}` (`different_settings_to_system`, split into saved/unsaved via the user's preset files, `UserPresetLocator`). The last two render a whole section — heading included, trailing newline — so that on a line of their own they vanish entirely when empty. Rules:
+
+- A parser lists what it supports in `ComputedPlaceholders`; only `OrcaParser` does today. A placeholder runs only when the active template references its key, so templates without `{{models}}` never pay for the full-file scan
+- `Render` must never throw: catch, `context.DebugLog(...)`, and return empty or a degraded value. The uploader must not fail a print log because of a note section
+- Everything a placeholder may touch comes from `ParseOptions` (stream opener, debug log, slicer config roots). `ParseGcode(string)` uses `ParseOptions.InMemory`, which has no file or config access, so unit tests and fixture snapshots are hermetic; `Program.cs` passes the real file and `SlicerInstallerRegistry.OrcaFamilyConfigRoots`
+- Computed keys are excluded from the parser-factory heuristic score and from `TemplatePlaceholderCoverageTests`
+
 ## Testing
 
 Uses MSTest with Snapshooter for snapshot testing. Real G-code fixtures live under `Slic3rPostProcessingUploaderUnitTests/TestData/{SlicerName}/` and are copied to the test output directory. Use `TestData.Load(relativePath)` for a named fixture and `TestData.EnumerateFixtures(slicerFolder)` for data-driven coverage of every version in a slicer's folder.
@@ -81,7 +92,7 @@ Snapshot.Match(
     matchOptions => matchOptions.HashField("settings.Snapshot"));
 ```
 
-Keep fixtures compact by replacing unused toolpath bodies with a short omission marker while preserving the header, thumbnails, print summary, and trailing configuration. Retain one untrimmed fixture for `GcodeWindowTests`.
+Keep fixtures compact by replacing unused toolpath bodies with a short omission marker while preserving the header, thumbnails, print summary, and trailing configuration. Retain one untrimmed fixture for `GcodeWindowTests`. An Orca fixture that should exercise `{{models}}` needs whole layers kept (the object markers repeat per layer), including the last layer for the height; `orcaslicer-2.4.0-benchy-x16.gcode` keeps four.
 
 ### Installer tests
 

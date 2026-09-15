@@ -286,6 +286,24 @@ I used these settings:
 - Acceleration to Deceleration: 50%
 ```
 
+### Computed Placeholders (OrcaSlicer)
+
+A few placeholders are computed from the G-code rather than read from a `; key = value` line. They are only available for OrcaSlicer exports today, and each one only does its work when your template actually uses it — a custom template without `{{models}}` never scans the toolpath.
+
+| Placeholder | What it renders |
+| --- | --- |
+| `{{filament_profiles}}` | The filament profiles used, one entry per distinct profile with a count instead of one per slot: `Snapmaker PLA @U1 (PLA, Snapmaker) ×5` or `A (PLA, X) ×2, B (PETG, Y)`. |
+| `{{models}}` | A `Models:` section with one line per object on the plate: the number of copies and the printed size (outer dimensions in mm, so a print can be recreated at the same scale), measured from the toolpath: `3DBenchy.drc  ×16   60.0 × 31.0 × 48.0 mm`. Brim, skirt, supports and prime towers are excluded. Needs `Label objects` enabled in the printer settings (Orca's default). Scale factor and rotation are not in the G-code, so the box is what was printed, not the original model. Empty when the file has no object markers. |
+| `{{modified_settings}}` | A `Profile Changes:` section listing which settings differ from the system profile the print was based on, with their values: `Changed from "0.16 High Quality @U1": sparse_infill_density = 8%, wall_loops = 3`. Unsaved changes made in the plater are included. When the uploader can find your own preset files in the OrcaSlicer config folder on the same machine, only the `Unsaved changes:` are listed (changes already saved in a preset come back by selecting that preset again); if it cannot (another computer, the same preset name under two accounts, an unreadable file) it shows the flat list rather than guess. Empty when nothing was changed or every change is saved. |
+
+`{{models}}` and `{{modified_settings}}` bring their own heading and end with a newline. A placeholder that sits alone on a line is laid out as a block — every line of its value is indented like the placeholder, and if the value is empty the line is removed — so the built-in templates simply put each on its own line and the whole section disappears when there is nothing to show:
+
+```
+{{modified_settings}}
+{{models}}
+Settings:
+```
+
 ## Releasing
 
 Releases are cut by pushing a tag. There is no version to bump in the csproj and no changelog to edit:

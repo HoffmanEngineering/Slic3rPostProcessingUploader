@@ -31,11 +31,14 @@ public sealed class TemplatePlaceholderCoverageTests
     [
         new(
             "OrcaSlicer",
-            Path.Combine("OrcaSlicer", "orcaslicer-2.2.0-rc-calibration-cube.gcode"),
+            Path.Combine("OrcaSlicer", "orcaslicer-2.4.0-benchy-x16.gcode"),
             template => new OrcaParser(template),
             EmbeddedNoteTemplate.Default("OrcaSlicer"),
             EmbeddedNoteTemplate.Full("OrcaSlicer"),
-            new Dictionary<string, string>()),
+            new Dictionary<string, string>
+            {
+                ["rotate_solid_infill_direction"] = "OrcaSlicer 2.3 replaced this with solid_infill_rotate_template, which is empty unless the user sets it",
+            }),
         new(
             "PrusaSlicer",
             Path.Combine("PrusaSlicer", "prusaslicer-3.0.0-alpha11-calibration-cube.gcode"),

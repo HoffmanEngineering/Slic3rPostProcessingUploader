@@ -83,5 +83,13 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         {
             return values.TryGetValue(key, out var value) ? value : string.Empty;
         }
+
+        /// <summary>
+        /// Stores a computed value under the key, replacing any "; key = value" line of the same name.
+        /// </summary>
+        public void Set(string key, string value)
+        {
+            values[key] = value;
+        }
     }
 }

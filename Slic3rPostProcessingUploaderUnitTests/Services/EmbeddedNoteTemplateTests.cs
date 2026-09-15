@@ -26,7 +26,9 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
         {
             var template = new EmbeddedNoteTemplate(slicer, kind).getNoteTemplate();
 
-            Assert.IsTrue(template.StartsWith("Settings:\n", StringComparison.Ordinal), $"{slicer}/{kind} should start with the Settings: heading");
+            Assert.IsTrue(
+                template.StartsWith("Settings:\n", StringComparison.Ordinal) || template.StartsWith("Profiles:\n", StringComparison.Ordinal),
+                $"{slicer}/{kind} should start with a section heading");
             Assert.IsFalse(template.Contains('\r'), $"{slicer}/{kind} should be normalised to LF");
             Assert.IsFalse(template.EndsWith('\n'), $"{slicer}/{kind} should not end with a newline");
             Assert.IsTrue(template.Contains("{{layer_height}}", StringComparison.Ordinal), $"{slicer}/{kind} should contain placeholders");
