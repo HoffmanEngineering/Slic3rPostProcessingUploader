@@ -11,6 +11,14 @@
 	     as a global property and also drives AssemblyVersion, FileVersion and InformationalVersion. The placeholder
 	     makes any binary that was not built from a tag say so in its own version output. -->
 	<Version>0.0.0-dev</Version>
+	<!-- Version-info resource shown in Explorer's Properties > Details tab and the UAC prompt. SmartScreen's
+	     "Publisher" line comes from the Authenticode signature, not from these fields. -->
+	<Company>Hoffman Engineering</Company>
+	<Authors>Christopher Hoffman</Authors>
+	<Product>3D Print Log Uploader</Product>
+	<AssemblyTitle>3D Print Log Uploader</AssemblyTitle>
+	<Description>Post-processing script that logs sliced prints to 3dprintlog.com</Description>
+	<Copyright>Copyright (c) Hoffman Engineering</Copyright>
     <PublishSingleFile>true</PublishSingleFile>
     <PublishAot>true</PublishAot>
 	<RuntimeIdentifiers>win-x64;osx-x64;osx-arm64;linux-x64</RuntimeIdentifiers>
