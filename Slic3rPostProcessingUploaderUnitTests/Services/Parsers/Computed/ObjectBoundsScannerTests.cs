@@ -165,6 +165,16 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         }
 
         [TestMethod]
+        public void ShouldReadBambuStudioFeatureTagsLikeTypeTags()
+        {
+            var body = "; FEATURE: Prime tower\nG1 X0 Y0 E0.5\nG1 X100 Y100 E0.5\n; FEATURE: Outer wall\n" + Square[";TYPE:Outer wall\n".Length..];
+
+            var result = Scan(Layer("0.2", body));
+
+            AssertBox(result[0], 10, 20, 10, 20, 0.2);
+        }
+
+        [TestMethod]
         public void ShouldIgnoreMovesOutsideAnyObject()
         {
             var gcode = ";Z:0.2\n;TYPE:Outer wall\nG1 X0 Y0 E0.5\nG1 X100 Y100 E0.5\n" + Layer("0.2", Square) + "G1 X200 Y200 E0.5\n";

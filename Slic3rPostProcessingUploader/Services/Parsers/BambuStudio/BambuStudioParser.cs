@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Slic3rPostProcessingUploader.Services.Parsers.Computed;
 
 namespace Slic3rPostProcessingUploader.Services.Parsers.BambuStudio
 {
@@ -13,6 +14,11 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.BambuStudio
         protected override string FilamentLengthKey => "total filament length [mm]";
         protected override string FilamentWeightKey => "total filament weight [g]";
         protected override bool SupportsMultiFilament => true;
+
+        // Bambu Studio writes the same profile and different_settings_to_system keys as Orca (without inherits_group,
+        // so changes are listed flat) and labels objects on every layer, though only by id.
+        protected override IReadOnlyList<ComputedPlaceholder> ComputedPlaceholders =>
+            [FilamentProfilesPlaceholder.Instance, ModifiedSettingsPlaceholder.Instance, ModelsPlaceholder.Instance];
 
         public static bool IsBambuStudio(string gcode)
         {

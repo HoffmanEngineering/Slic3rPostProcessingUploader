@@ -85,6 +85,26 @@ public sealed class BambuStudioParserTests
     }
 
     [TestMethod]
+    public void ShouldRenderTheComputedSectionsFromTheTwoFilamentExport()
+    {
+        // The fixture keeps whole layers 1-3 and 123-128 of a 25 mm cube printed twice (outer wall centrelines span
+        // 113.44-138.62 in X), so each box is that span plus one 0.42 mm wall, and the last layer's height. Bambu
+        // never names its objects, and the only "changed" key is the uploader's own post_process, so that section
+        // is empty and its line vanishes; the Models section ends with its own newline, hence the blank line.
+        var parser = new BambuStudioParser("{{filament_profiles}}\n{{models}}\n{{modified_settings}}\nEnd");
+        var result = parser.ParseGcode(TwoFilamentCalibrationCube);
+
+        Assert.AreEqual(
+            "Bambu PLA Basic @BBL A1 (PLA, Bambu Lab) ×2\n" +
+            "Models:\n" +
+            "  Object 67   ×1   25.6 × 25.6 × 25.6 mm\n" +
+            "  Object 100  ×1   25.6 × 25.6 × 25.6 mm\n" +
+            "\n" +
+            "End",
+            result.settings.note);
+    }
+
+    [TestMethod]
     public void ShouldRenderFullTemplateWhenGivenAGcodeWithTwoFilaments()
     {
         var parser = new BambuStudioParser("");

@@ -22,5 +22,15 @@ namespace Slic3rPostProcessingUploader.Services.Installer
             All.OfType<OrcaFamilyProfileInstaller>()
                 .Select(installer => installer.GetConfigRoot())
                 .OfType<string>();
+
+        /// <summary>
+        /// Every config directory the parsers may search for the user's own presets: the Orca family's, plus Bambu
+        /// Studio (an Orca-family layout without an installer) and PrusaSlicer (its own .ini layout). Each preset
+        /// locator only recognises its own layout, so one list serves all of them.
+        /// </summary>
+        public static IEnumerable<string> PresetConfigRoots() =>
+            OrcaFamilyConfigRoots()
+                .Concat(new[] { "BambuStudio", "PrusaSlicer" }.Select(SlicerConfigRoot.ForCurrentMachine).OfType<string>())
+                .Distinct(StringComparer.Ordinal);
     }
 }

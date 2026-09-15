@@ -1,3 +1,11 @@
+Profiles:
+  Print: {{print_settings_id}}
+  Printer: {{printer_settings_id}} ({{printer_model}}, {{nozzle_diameter}}mm nozzle)
+  Filament: {{filament_profiles}}
+  Host: {{host_type}}
+
+{{modified_settings}}
+{{models}}
 Settings:
 
 Layers and Perimeters:

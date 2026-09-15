@@ -31,7 +31,8 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
 
     /// <summary>
     /// Streams a whole G-code file and computes a bounding box per object instance. Every supported slicer tags
-    /// extrusion runs with ";TYPE:" and brackets each instance's toolpath on every layer, each in its own dialect:
+    /// extrusion runs with their role (";TYPE:", or "; FEATURE:" in Bambu Studio, with the same role names) and
+    /// brackets each instance's toolpath on every layer, each in its own dialect:
     /// <list type="bullet">
     /// <item>Orca, and PrusaSlicer in octoprint mode: "; printing object &lt;name&gt; id:&lt;n&gt; copy &lt;m&gt;" …
     /// "; stop printing object …", layers announced with ";Z:"</item>
@@ -66,6 +67,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
         private static ReadOnlySpan<byte> KlipperStartMarker => "EXCLUDE_OBJECT_START NAME="u8;
         private static ReadOnlySpan<byte> KlipperStopMarker => "EXCLUDE_OBJECT_END"u8;
         private static ReadOnlySpan<byte> TypeMarker => ";TYPE:"u8;
+        private static ReadOnlySpan<byte> BambuTypeMarker => "; FEATURE:"u8;
         private static ReadOnlySpan<byte> LayerMarker => ";Z:"u8;
         private static ReadOnlySpan<byte> BambuLayerMarker => "; Z_HEIGHT:"u8;
         private static ReadOnlySpan<byte> Bom => [0xEF, 0xBB, 0xBF];
@@ -264,20 +266,28 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
                 }
                 else if (line.StartsWith(TypeMarker))
                 {
-                    var type = line[TypeMarker.Length..];
-                    skipType = false;
-                    foreach (var skipped in SkippedTypes)
-                    {
-                        if (type.StartsWith(skipped))
-                        {
-                            skipType = true;
-                            break;
-                        }
-                    }
+                    SetType(line[TypeMarker.Length..]);
+                }
+                else if (line.StartsWith(BambuTypeMarker))
+                {
+                    SetType(line[BambuTypeMarker.Length..].TrimStart((byte)' '));
                 }
                 else if (line.StartsWith(LayerMarker))
                 {
                     SetLayer(line[LayerMarker.Length..]);
+                }
+            }
+
+            private void SetType(ReadOnlySpan<byte> type)
+            {
+                skipType = false;
+                foreach (var skipped in SkippedTypes)
+                {
+                    if (type.StartsWith(skipped))
+                    {
+                        skipType = true;
+                        break;
+                    }
                 }
             }
 

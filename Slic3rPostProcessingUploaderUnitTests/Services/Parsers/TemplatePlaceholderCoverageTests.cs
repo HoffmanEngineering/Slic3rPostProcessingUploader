@@ -45,7 +45,11 @@ public sealed class TemplatePlaceholderCoverageTests
             template => new PrusaParser(template),
             EmbeddedNoteTemplate.Default("PrusaSlicer"),
             EmbeddedNoteTemplate.Full("PrusaSlicer"),
-            new Dictionary<string, string>()),
+            new Dictionary<string, string>
+            {
+                ["print_settings_id"] = "the 3.0.0-alpha11 export was sliced with unsaved (unnamed) presets, so the id is empty",
+                ["printer_settings_id"] = "the 3.0.0-alpha11 export was sliced with unsaved (unnamed) presets, so the id is empty",
+            }),
         new(
             "BambuStudio",
             Path.Combine("BambuStudio", "bambustudio-01.10.01.50-calibration-cube.gcode"),
