@@ -166,6 +166,104 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
             Assert.AreEqual(string.Empty, note);
         }
 
+        private void WriteVendorBundle(string bundle, string ini, string? configRoot = null)
+        {
+            var dir = Path.Combine(configRoot ?? root, "vendor");
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, bundle + ".ini"), "# Vendor bundle\nconfig_version = 1.0.0\n\n" + ini);
+        }
+
+        [TestMethod]
+        public void ShouldResolveASystemPresetThroughItsInheritsChainInTheVendorBundle()
+        {
+            // Later parents override earlier ones, and the preset's own keys override every parent.
+            WriteVendorBundle("Acme", "[print:*common*]\nfill_density = 15%\nperimeters = 2\nlayer_height = 0.2\n\n" +
+                "[print:*fast*]\nfill_density = 10%\n\n" +
+                "[print:Fast @Acme]\ninherits = *common*; *fast*\nlayer_height = 0.3\n");
+
+            var note = Render("; print_settings_id = Fast @Acme\n; fill_density = 10%\n; perimeters = 3\n; layer_height = 0.3\n");
+
+            Assert.AreEqual("Profile Changes:\n  Unsaved changes: perimeters = 3\n", note);
+        }
+
+        [TestMethod]
+        public void ShouldPreferTheUsersOwnPresetFileOverAVendorPresetOfTheSameName()
+        {
+            WriteVendorBundle("Acme", "[print:Fast @Acme]\nfill_density = 15%\n");
+            WritePreset("print", "Fast @Acme", "fill_density = 20%\n");
+
+            Assert.AreEqual(string.Empty, Render("; print_settings_id = Fast @Acme\n; fill_density = 20%\n"));
+        }
+
+        [TestMethod]
+        public void ShouldSkipASystemPresetFoundInMoreThanOneVendorBundle()
+        {
+            WriteVendorBundle("Acme", "[filament:Generic PLA]\ntemperature = 210\n");
+            WriteVendorBundle("Other", "[filament:Generic PLA]\ntemperature = 215\n");
+
+            Assert.AreEqual(string.Empty, Render("; filament_settings_id = \"Generic PLA\"\n; temperature = 220\n"));
+            Assert.IsTrue(log.Any(l => l.Contains("filament preset \"Generic PLA\"")), string.Join("\n", log));
+        }
+
+        [TestMethod]
+        public void ShouldTreatOneSavedValueAsMatchingEveryExtruderSlotItWasBroadcastTo()
+        {
+            // A vendor printer preset writes retract_lift once; the G-code repeats it for each of the five extruders.
+            WriteVendorBundle("Acme", "[printer:Five Tools]\nretract_lift = 0.2\nextruder_offset = 0x0\nnozzle_diameter = 0.4,0.4,0.4,0.4,0.4\n");
+
+            var same = Render("; printer_settings_id = Five Tools\n; retract_lift = 0.2,0.2,0.2,0.2,0.2\n; extruder_offset = 0x0,0x0,0x0,0x0,0x0\n; nozzle_diameter = 0.4,0.4,0.4,0.4,0.4\n");
+            var changed = Render("; printer_settings_id = Five Tools\n; retract_lift = 0.4,0.2,0.2,0.2,0.2\n");
+
+            Assert.AreEqual(string.Empty, same);
+            Assert.AreEqual("Profile Changes:\n  Unsaved changes: retract_lift = 0.4,0.2,0.2,0.2,0.2\n", changed);
+        }
+
+        [TestMethod]
+        public void ShouldTreatAPercentWrittenWithoutItsSignAsTheSameValue()
+        {
+            // Vendor bundles write some percent options bare (retract_before_wipe = 80); the G-code writes 80%.
+            WriteVendorBundle("Acme", "[printer:One Tool]\nretract_before_wipe = 80\n");
+
+            Assert.AreEqual(string.Empty, Render("; printer_settings_id = One Tool\n; retract_before_wipe = 80%\n"));
+            Assert.AreEqual("Profile Changes:\n  Unsaved changes: retract_before_wipe = 70%\n", Render("; printer_settings_id = One Tool\n; retract_before_wipe = 70%\n"));
+        }
+
+        [TestMethod]
+        public void ShouldSkipAVendorBundleItCannotParseAndCarryOn()
+        {
+            WriteVendorBundle("Broken", "[print:Fast @Acme\nthis is not = = a bundle\n");
+            WriteVendorBundle("Acme", "[print:Fast @Acme]\nfill_density = 15%\n");
+
+            Assert.AreEqual("Profile Changes:\n  Unsaved changes: fill_density = 20%\n", Render("; print_settings_id = Fast @Acme\n; fill_density = 20%\n"));
+        }
+
+        [TestMethod]
+        public void ShouldReportOnlyTheEditedPrintKeysOfARealExportOnStockPresets()
+        {
+            // A real MK4S MMU3 export where fill density, layer height and top layers were changed in the plater on the
+            // stock (system) presets, checked against a pruned copy of the real vendor bundle. binary_gcode = 0 is a
+            // genuine printer-preset change: the stock profile exports binary G-code and this file is text.
+            var gcode = TestData.Load(Path.Combine("PrusaSlicer", "prusaslicer-2.9.2-mk4s-mmu3-unsaved-print-settings.gcode"));
+
+            var note = Render(gcode, TestData.FullPath(Path.Combine("PrusaSlicer", "config")));
+
+            Assert.AreEqual("Profile Changes:\n  Unsaved changes: fill_density = 20%, layer_height = 0.3, top_solid_layers = 6, binary_gcode = 0\n", note);
+        }
+
+        [TestMethod]
+        public void ShouldReportEditsAcrossPrintFilamentAndPrinterPresetsOfARealExport()
+        {
+            // The same print with min_fan_speed changed on the (shared) filament preset and travel_max_lift on extruder 1.
+            var gcode = TestData.Load(Path.Combine("PrusaSlicer", "prusaslicer-2.9.2-mk4s-mmu3-unsaved-print-filament-printer.gcode"));
+
+            var note = Render(gcode, TestData.FullPath(Path.Combine("PrusaSlicer", "config")));
+
+            Assert.AreEqual(
+                "Profile Changes:\n  Unsaved changes: fill_density = 20%, layer_height = 0.3, top_solid_layers = 6, " +
+                "min_fan_speed = 75,75,75,75,75, binary_gcode = 0, travel_max_lift = 1.4,1.5,1.5,1.5,1.5\n",
+                note);
+        }
+
         [TestMethod]
         public void ShouldRenderNothingWhenTheConfigRootsCannotBeResolved()
         {

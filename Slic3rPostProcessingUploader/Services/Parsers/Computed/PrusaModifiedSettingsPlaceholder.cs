@@ -2,14 +2,15 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
 {
     /// <summary>
     /// {{modified_settings}} for PrusaSlicer: the settings that were changed in the plater and never saved. PrusaSlicer
-    /// G-code carries no list of changed keys, but a user preset's .ini file is a full dump of that preset, so every key
-    /// whose G-code value differs from the saved one is an unsaved change — the kind a reader cannot recover by
+    /// G-code carries no list of changed keys, but the preset it was sliced with can be reconstructed on the same
+    /// machine — a user preset from its .ini file (a full dump), a system preset from the vendor bundle — so every key
+    /// whose G-code value differs from the preset's is an unsaved change: the kind a reader cannot recover by
     /// selecting the same presets again.
     ///
     /// Each preset type is checked on its own: the print preset, every filament slot (a per-filament key is compared
-    /// against the slots' presets joined up), and the printer preset. A preset with no readable user file (a system
-    /// preset, another machine, an ambiguous name) is skipped with a debug note rather than guessed at, so the
-    /// section can only ever under-report.
+    /// against the slots' presets joined up), and the printer preset. A preset that cannot be found (another machine,
+    /// an ambiguous name, an unreadable file) is skipped with a debug note rather than guessed at, so the section can
+    /// only ever under-report.
     /// </summary>
     internal static class PrusaModifiedSettingsPlaceholder
     {
@@ -17,11 +18,12 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
 
         /// <summary>
         /// Keys that describe the preset rather than the print: the ids are renamed on save, the uploader's installer
-        /// writes post_process itself, and the compatibility conditions never reach the G-code.
+        /// writes post_process itself, and the compatibility conditions, aliases and rename history of a vendor
+        /// preset never reach the G-code.
         /// </summary>
         private static readonly HashSet<string> IgnoredKeys = new(StringComparer.Ordinal)
         {
-            "inherits", "post_process",
+            "inherits", "post_process", "alias", "renamed_from",
             "print_settings_id", "filament_settings_id", "printer_settings_id", "physical_printer_settings_id",
             "compatible_printers", "compatible_printers_condition", "compatible_prints", "compatible_prints_condition",
         };
@@ -76,7 +78,7 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
                     continue;
                 }
 
-                var saved = presets.SelectMany(p => ModifiedSettingsParser.ParseEntries(p![key])).ToList();
+                var saved = presets.Select(p => p![key]).ToList();
                 if (!IsSameValue(gcodeValue, saved))
                 {
                     changes.Add($"{key} = {gcodeValue}");
@@ -86,24 +88,37 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
 
         /// <summary>
         /// PrusaSlicer joins per-slot values with ',' for numbers and points and ';' for (possibly quoted) strings, so the
-        /// G-code value matches when either split equals the saved slot values. A plain string setting is written once
-        /// even on a multi-slot printer (filament_vendor), so one value matches when every slot saved that same value.
+        /// G-code value matches when either split equals the saved slot values. One side may also be a single value
+        /// the other repeats: a plain string setting is written once even on a multi-slot printer (filament_vendor),
+        /// and a vendor bundle writes one per-extruder value (retract_lift = 0.2) that the G-code expands per extruder.
+        /// A percent option may be written bare in a bundle (retract_before_wipe = 80) and as 80% in the G-code.
         /// </summary>
-        private static bool IsSameValue(string gcodeValue, IReadOnlyList<string> saved)
+        private static bool IsSameValue(string gcodeValue, IReadOnlyList<string> savedPerPreset)
         {
-            var quoted = ModifiedSettingsParser.ParseEntries(gcodeValue);
-            if (quoted.SequenceEqual(saved, StringComparer.Ordinal))
-            {
-                return true;
-            }
-
-            var numeric = gcodeValue.Split(',').Select(v => v.Trim()).ToList();
-            if (numeric.SequenceEqual(saved, StringComparer.Ordinal))
-            {
-                return true;
-            }
-
-            return quoted.Count == 1 && saved.Count > 1 && saved.All(v => v == quoted[0]);
+            return SameElements(Quoted(gcodeValue), savedPerPreset.SelectMany(Quoted).ToList())
+                || SameElements(Numeric(gcodeValue), savedPerPreset.SelectMany(Numeric).ToList());
         }
+
+        private static IReadOnlyList<string> Quoted(string value) => ModifiedSettingsParser.ParseEntries(value);
+
+        private static IReadOnlyList<string> Numeric(string value) => value.Split(',').Select(v => v.Trim()).ToList();
+
+        private static bool SameElements(IReadOnlyList<string> gcode, IReadOnlyList<string> saved)
+        {
+            if (gcode.Count == saved.Count)
+            {
+                return gcode.Zip(saved).All(pair => SameElement(pair.First, pair.Second));
+            }
+
+            if (gcode.Count == 1 && saved.Count > 1)
+            {
+                return saved.All(v => SameElement(gcode[0], v));
+            }
+
+            return saved.Count == 1 && gcode.Count > 1 && gcode.All(v => SameElement(v, saved[0]));
+        }
+
+        private static bool SameElement(string gcode, string saved) =>
+            gcode == saved || (gcode.EndsWith('%') && gcode[..^1] == saved);
     }
 }
