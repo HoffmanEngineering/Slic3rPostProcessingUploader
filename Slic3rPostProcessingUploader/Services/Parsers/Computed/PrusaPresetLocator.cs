@@ -7,12 +7,25 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
     /// </summary>
     internal sealed class PrusaPresetLocator(IEnumerable<string> configRoots, Action<string> debugLog)
     {
+        // A multi-slot printer names the same filament preset once per slot; look it up (and log about it) once.
+        private readonly Dictionary<(string Type, string Name), IReadOnlyDictionary<string, string>?> cache = [];
+
         /// <summary>
         /// The flat key/value pairs of the one user preset file for <paramref name="name"/>, or null when it cannot be
         /// pinned to exactly one readable file — the caller then says nothing about that preset rather than guess.
         /// A system preset has no user file, so it lands here too.
         /// </summary>
         public IReadOnlyDictionary<string, string>? Read(string type, string name)
+        {
+            if (!cache.TryGetValue((type, name), out var values))
+            {
+                cache[(type, name)] = values = Locate(type, name);
+            }
+
+            return values;
+        }
+
+        private IReadOnlyDictionary<string, string>? Locate(string type, string name)
         {
             if (!UserPresetLocator.IsSafePresetName(name))
             {

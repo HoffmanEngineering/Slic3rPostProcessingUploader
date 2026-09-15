@@ -72,12 +72,14 @@ A placeholder that is alone on its line renders as a block: each line of the val
 
 ### Computed placeholders
 
-`Services/Parsers/Computed/` holds placeholders whose value comes from code (`ComputedPlaceholder(Key, Render)`), currently `{{filament_profiles}}` (distinct filament profiles with counts), `{{models}}` (per-object size from a streaming scan of the whole file, `ObjectBoundsScanner`) and `{{modified_settings}}` (`different_settings_to_system`, split into saved/unsaved via the user's preset files, `UserPresetLocator`). The last two render a whole section — heading included, trailing newline — so that on a line of their own they vanish entirely when empty. Rules:
+`Services/Parsers/Computed/` holds placeholders whose value comes from code (`ComputedPlaceholder(Key, Render)`), currently `{{filament_profiles}}` (distinct filament profiles with counts), `{{models}}` (per-object size from a streaming scan of the whole file, `ObjectBoundsScanner`) and `{{modified_settings}}`. The last two render a whole section — heading included, trailing newline — so that on a line of their own they vanish entirely when empty. Rules:
 
-- A parser lists what it supports in `ComputedPlaceholders`; only `OrcaParser` does today. A placeholder runs only when the active template references its key, so templates without `{{models}}` never pay for the full-file scan
+- A parser lists what it supports in `ComputedPlaceholders`: `OrcaParser`, `BambuStudioParser` and `PrusaParser` do today. A placeholder runs only when the active template references its key, so templates without `{{models}}` never pay for the full-file scan
 - `Render` must never throw: catch, `context.DebugLog(...)`, and return empty or a degraded value. The uploader must not fail a print log because of a note section
-- Everything a placeholder may touch comes from `ParseOptions` (stream opener, debug log, slicer config roots). `ParseGcode(string)` uses `ParseOptions.InMemory`, which has no file or config access, so unit tests and fixture snapshots are hermetic; `Program.cs` passes the real file and `SlicerInstallerRegistry.OrcaFamilyConfigRoots`
+- Everything a placeholder may touch comes from `ParseOptions` (stream opener, debug log, slicer config roots). `ParseGcode(string)` uses `ParseOptions.InMemory`, which has no file or config access, so unit tests and fixture snapshots are hermetic; `Program.cs` passes the real file and `SlicerInstallerRegistry.PresetConfigRoots` (Orca family + Bambu Studio + PrusaSlicer; each locator only recognises its own folder layout)
 - Computed keys are excluded from the parser-factory heuristic score and from `TemplatePlaceholderCoverageTests`
+- `{{modified_settings}}` has two implementations. `ModifiedSettingsPlaceholder` (Orca, Bambu) reads `different_settings_to_system` and splits it into saved/unsaved via the user's JSON presets (`UserPresetLocator`); Bambu writes no `inherits_group`, so it always gets the flat list. `PrusaModifiedSettingsPlaceholder` has no list to read: it diffs the config block against the user's full-dump `.ini` presets (`PrusaPresetLocator`) and reports only unsaved changes, skipping any preset type whose file it cannot pin down
+- `ObjectBoundsScanner` understands every slicer's marker dialect (`; printing object … id:n copy m`, Bambu's `; start printing object, unique label id: n` + `; Z_HEIGHT:` + `; FEATURE:`, PrusaSlicer's `M486 S<n>`/`M486 A<name>`, Klipper's `EXCLUDE_OBJECT_START NAME=`). Orca writes comment markers *and* `M486` for the same instance, so once a comment marker is seen the firmware commands are ignored. Bambu files carry no object names (`Object 67`); `.bgcode` toolpaths are not decoded, so `{{models}}` is empty for them
 
 ## Testing
 
@@ -92,7 +94,7 @@ Snapshot.Match(
     matchOptions => matchOptions.HashField("settings.Snapshot"));
 ```
 
-Keep fixtures compact by replacing unused toolpath bodies with a short omission marker while preserving the header, thumbnails, print summary, and trailing configuration. Retain one untrimmed fixture for `GcodeWindowTests`. An Orca fixture that should exercise `{{models}}` needs whole layers kept (the object markers repeat per layer), including the last layer for the height; `orcaslicer-2.4.0-benchy-x16.gcode` keeps four.
+Keep fixtures compact by replacing unused toolpath bodies with a short omission marker while preserving the header, thumbnails, print summary, and trailing configuration. Retain one untrimmed fixture for `GcodeWindowTests`. A fixture that should exercise `{{models}}` needs whole layers kept (the object markers repeat per layer), including the last layer for the height; `orcaslicer-2.4.0-benchy-x16.gcode` keeps four and `bambustudio-01.10.01.50-calibration-cube-two-filament.gcode` keeps layers 1-3 and 123-128. The PrusaSlicer fixtures keep none, so its `{{models}}` coverage is the synthetic `ObjectBoundsScannerTests`.
 
 ### Installer tests
 

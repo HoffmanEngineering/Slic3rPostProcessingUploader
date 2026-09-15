@@ -128,6 +128,15 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         }
 
         [TestMethod]
+        public void ShouldLookUpAPresetRepeatedAcrossSlotsOnlyOnce()
+        {
+            // A five-slot printer loaded with one filament names the same preset five times.
+            Render("; filament_settings_id = \"My PLA\";\"My PLA\";\"My PLA\";\"My PLA\";\"My PLA\"\n; temperature = 215,215,215,215,215\n");
+
+            Assert.AreEqual(1, log.Count(l => l.Contains("filament preset \"My PLA\"")), string.Join("\n", log));
+        }
+
+        [TestMethod]
         public void ShouldGiveUpOnAPresetFoundUnderTwoConfigRoots()
         {
             var other = Path.Combine(root, "other-root");
