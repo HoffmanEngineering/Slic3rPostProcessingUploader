@@ -39,12 +39,18 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
 
                 var key = line.Slice(0, separatorIndex);
                 var value = line.Slice(separatorIndex + 3).Trim();
+
+                // A key can appear more than once (a summary line in the header, the config block at the end); the
+                // first non-empty value wins. A key only ever written empty is still recorded, so a setting the user
+                // cleared ("; notes = ") can be told from one the slicer never wrote.
                 if (value.IsEmpty)
                 {
-                    continue;
+                    values.TryAdd(key.ToString(), string.Empty);
                 }
-
-                values.TryAdd(key.ToString(), value.ToString());
+                else if (!values.TryGetValue(key.ToString(), out var existing) || existing.Length == 0)
+                {
+                    values[key.ToString()] = value.ToString();
+                }
             }
 
             return new GcodeSettings(values);
@@ -82,6 +88,14 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         public string Get(string key)
         {
             return values.TryGetValue(key, out var value) ? value : string.Empty;
+        }
+
+        /// <summary>
+        /// Like <see cref="Get"/>, but tells a key that is absent apart from one whose value is empty.
+        /// </summary>
+        public bool TryGet(string key, out string value)
+        {
+            return values.TryGetValue(key, out value!);
         }
 
         /// <summary>

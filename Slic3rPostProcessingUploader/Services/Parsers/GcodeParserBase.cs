@@ -147,8 +147,34 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
                 if (referencedKeys.Contains(placeholder.Key))
                 {
                     context ??= new ComputedContext(settings, options);
-                    settings.Set(placeholder.Key, placeholder.Render(context));
+                    settings.Set(placeholder.Key, RenderSafely(placeholder, context, options));
                 }
+            }
+        }
+
+        /// <summary>
+        /// A placeholder promises not to throw, but a note section must never cost the user their print log, so this
+        /// is the last line of defence: a throwing placeholder renders empty. The debug log is best effort here too,
+        /// since a broken log file must not turn a swallowed failure into a fatal one.
+        /// </summary>
+        private static string RenderSafely(ComputedPlaceholder placeholder, ComputedContext context, ParseOptions options)
+        {
+            try
+            {
+                return placeholder.Render(context);
+            }
+            catch (Exception e)
+            {
+                try
+                {
+                    options.DebugLog($"{{{{{placeholder.Key}}}}} could not be computed and was left empty: {e}");
+                }
+                catch
+                {
+                    // Nothing left to report to.
+                }
+
+                return string.Empty;
             }
         }
 

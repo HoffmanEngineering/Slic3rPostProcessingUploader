@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Slic3rPostProcessingUploader.Services.Parsers.Computed;
 
 namespace Slic3rPostProcessingUploader.Services.Parsers.PrusaSlicer
 {
@@ -11,6 +12,11 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.PrusaSlicer
         // MMU and XL exports write one "filament used" value per extruder slot, in the same shape OrcaSlicer uses.
         protected override bool SupportsMultiFilament => true;
         protected override INoteTemplate CreateDefaultTemplate() => EmbeddedNoteTemplate.Default("PrusaSlicer");
+
+        // PrusaSlicer's G-code has no list of changed settings, so {{modified_settings}} is the Prusa-specific one that
+        // compares the config block against the user's own preset files.
+        protected override IReadOnlyList<ComputedPlaceholder> ComputedPlaceholders =>
+            [FilamentProfilesPlaceholder.Instance, PrusaModifiedSettingsPlaceholder.Instance, ModelsPlaceholder.Instance];
 
         public static bool IsPrusaSlicer(string gcode)
         {

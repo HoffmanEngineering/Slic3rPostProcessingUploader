@@ -116,7 +116,7 @@ try
 
     // Track parse duration
     var parseStopwatch = Stopwatch.StartNew();
-    var parseOptions = new ParseOptions(() => File.OpenRead(arguments.InputFile), output.Debug, SlicerInstallerRegistry.OrcaFamilyConfigRoots);
+    var parseOptions = new ParseOptions(() => File.OpenRead(arguments.InputFile), output.Debug, SlicerInstallerRegistry.PresetConfigRoots);
     CuraSettingDto dto = parser.ParseGcode(fileContents, parseOptions);
     parseStopwatch.Stop();
 

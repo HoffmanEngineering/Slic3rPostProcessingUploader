@@ -28,5 +28,21 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer
         {
             Assert.IsTrue(SlicerInstallerRegistry.All.Any(s => s.SlicerName == "AnycubicSlicer Next"));
         }
+
+        [TestMethod]
+        public void PresetConfigRoots_CoverEveryInstallerPlusBambuStudioAndPrusaSlicer()
+        {
+            // The parsers look up user presets under these; Bambu Studio and PrusaSlicer have no installer but keep
+            // their config next to the Orca family's, so they are resolved the same way.
+            var roots = SlicerInstallerRegistry.PresetConfigRoots().Select(Path.GetFileName).ToList();
+
+            CollectionAssert.IsSubsetOf(SlicerInstallerRegistry.OrcaFamilyConfigRoots().Select(Path.GetFileName).ToList(), roots);
+            CollectionAssert.Contains(roots, "BambuStudio");
+            CollectionAssert.Contains(roots, "PrusaSlicer");
+            // PrusaSlicer 2.x pre-releases keep their own data directory next to the stable one.
+            CollectionAssert.Contains(roots, "PrusaSlicer-alpha");
+            CollectionAssert.Contains(roots, "PrusaSlicer-beta");
+            Assert.AreEqual(roots.Count, roots.Distinct().Count());
+        }
     }
 }

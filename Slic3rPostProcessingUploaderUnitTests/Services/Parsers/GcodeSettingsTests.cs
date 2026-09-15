@@ -60,6 +60,18 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers
         }
 
         [TestMethod]
+        public void ShouldTellAKeyWrittenEmptyFromAKeyThatIsAbsent()
+        {
+            // PrusaSlicer writes cleared settings as "; notes = "; a preset comparison must see them as present.
+            var settings = GcodeSettings.Parse("; notes = \n; layer_height = 0.2\n", EqualsOnly);
+
+            Assert.IsTrue(settings.TryGet("notes", out var notes));
+            Assert.AreEqual(string.Empty, notes);
+            Assert.IsFalse(settings.TryGet("fill_density", out _));
+            Assert.AreEqual(string.Empty, settings.Get("notes"));
+        }
+
+        [TestMethod]
         public void ShouldKeepEverythingAfterTheFirstSeparatorAsTheValue()
         {
             var settings = GcodeSettings.Parse("; start_gcode = M104 S[temp] ; a = b\n", EqualsOnly);

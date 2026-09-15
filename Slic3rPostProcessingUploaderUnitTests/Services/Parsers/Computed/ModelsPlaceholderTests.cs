@@ -68,6 +68,17 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         }
 
         [TestMethod]
+        public void ShouldUsePrusaSlicerExtrusionWidthsWithTheExternalPerimeterFirst()
+        {
+            var body = ";Z:5\n" + Instance("Cube", 0, Box(10, 10, 20, 20));
+
+            Assert.AreEqual("Models:\n  Cube  ×1   20.5 × 20.5 × 5.0 mm\n", Render("; external_perimeter_extrusion_width = 0.5\n; extrusion_width = 0.45\n" + body));
+            // PrusaSlicer writes 0 for "auto" and a percentage of the layer height for a relative width; neither is usable.
+            Assert.AreEqual("Models:\n  Cube  ×1   20.4 × 20.4 × 5.0 mm\n", Render("; external_perimeter_extrusion_width = 0\n; extrusion_width = 0.4\n" + body));
+            Assert.AreEqual("Models:\n  Cube  ×1   20.4 × 20.4 × 5.0 mm\n", Render("; external_perimeter_extrusion_width = 120%\n; extrusion_width = 0.4\n" + body));
+        }
+
+        [TestMethod]
         public void ShouldUseBareCentrelineDimensionsWithoutAnyLineWidth()
         {
             var gcode = ";Z:5\n" + Instance("Cube", 0, Box(10, 10, 20, 20));

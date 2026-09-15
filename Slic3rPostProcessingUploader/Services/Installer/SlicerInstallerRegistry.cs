@@ -22,5 +22,17 @@ namespace Slic3rPostProcessingUploader.Services.Installer
             All.OfType<OrcaFamilyProfileInstaller>()
                 .Select(installer => installer.GetConfigRoot())
                 .OfType<string>();
+
+        /// <summary>
+        /// Every config directory the parsers may search for the user's own presets: the Orca family's, plus Bambu
+        /// Studio (an Orca-family layout without an installer) and PrusaSlicer 2.x (its own .ini layout; alpha and
+        /// beta builds keep a directory of their own). Each preset locator only recognises its own layout, so one
+        /// list serves all of them. PrusaSlicer 3.0 stores presets as YAML under a "PrusaSlicer3-dev" directory,
+        /// which no locator reads yet, and a custom --datadir cannot be discovered.
+        /// </summary>
+        public static IEnumerable<string> PresetConfigRoots() =>
+            OrcaFamilyConfigRoots()
+                .Concat(new[] { "BambuStudio", "PrusaSlicer", "PrusaSlicer-alpha", "PrusaSlicer-beta" }.Select(SlicerConfigRoot.ForCurrentMachine).OfType<string>())
+                .Distinct(StringComparer.Ordinal);
     }
 }
