@@ -114,4 +114,20 @@ public sealed class PrusaParserTests
 
         Assert.AreEqual("Prusament PLA @MK4S (PLA, Prusa Polymers) ×4, Prusament PETG @MK4S (PETG, Prusa Polymers)\nEnd", result.settings.note);
     }
+
+    [TestMethod]
+    public void ShouldMeasureFirmwareLabelledObjectsFromARealExport()
+    {
+        // Firmware labelling (M486): the fixture keeps layers 1, 2, 124 and 125 of a 25 mm box and a 28.2 mm cylinder.
+        // The sizes match the footprints PrusaSlicer wrote in its own objects_info line and max_layer_z = 25.
+        var gcode = TestData.Load(Path.Combine("PrusaSlicer", "prusaslicer-2.9.2-mk4s-mmu3-shape-box-cylinder.gcode"));
+
+        var result = new PrusaParser("{{models}}").ParseGcode(gcode);
+
+        Assert.AreEqual(
+            "Models:\n" +
+            "  Shape-Cylinder  ×1   28.2 × 28.2 × 25.0 mm\n" +
+            "  Shape-Box       ×1   25.0 × 25.0 × 25.0 mm\n",
+            result.settings.note);
+    }
 }

@@ -94,7 +94,7 @@ Snapshot.Match(
     matchOptions => matchOptions.HashField("settings.Snapshot"));
 ```
 
-Keep fixtures compact by replacing unused toolpath bodies with a short omission marker while preserving the header, thumbnails, print summary, and trailing configuration. Retain one untrimmed fixture for `GcodeWindowTests`. A fixture that should exercise `{{models}}` needs whole layers kept (the object markers repeat per layer), including the last layer for the height; `orcaslicer-2.4.0-benchy-x16.gcode` keeps four and `bambustudio-01.10.01.50-calibration-cube-two-filament.gcode` keeps layers 1-3 and 123-128. The PrusaSlicer fixtures keep none, so its `{{models}}` coverage is the synthetic `ObjectBoundsScannerTests`.
+Keep fixtures compact by replacing unused toolpath bodies with a short omission marker while preserving the header, thumbnails, print summary, and trailing configuration. Retain one untrimmed fixture for `GcodeWindowTests`. A fixture that should exercise `{{models}}` needs whole layers kept (the object markers repeat per layer), including the last layer for the height; `orcaslicer-2.4.0-benchy-x16.gcode` keeps four and `bambustudio-01.10.01.50-calibration-cube-two-filament.gcode` keeps layers 1-3 and 123-128. `prusaslicer-2.9.2-mk4s-mmu3-shape-box-cylinder.gcode` (firmware `M486` labelling) keeps layers 1, 2, 124 and 125.
 
 ### Installer tests
 
