@@ -58,6 +58,16 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
         }
 
         [TestMethod]
+        public void ShouldReportASavedValueThatWasClearedInThePlater()
+        {
+            WritePreset("print", "My Print", "notes = keep me\nfill_density = 15%\n");
+
+            var note = Render(Ids + "; notes = \n; fill_density = 15%\n");
+
+            Assert.AreEqual("Profile Changes:\n  Unsaved changes: notes = \n", note);
+        }
+
+        [TestMethod]
         public void ShouldRenderNothingWhenEveryValueMatchesTheSavedPreset()
         {
             WritePreset("print", "My Print", "fill_density = 15%\nlayer_height = 0.2\n");
@@ -154,6 +164,18 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers.Computed
             var note = Render("; print_settings_id = ..\\print\\My Print\n; fill_density = 25%\n");
 
             Assert.AreEqual(string.Empty, note);
+        }
+
+        [TestMethod]
+        public void ShouldRenderNothingWhenTheConfigRootsCannotBeResolved()
+        {
+            var settings = GcodeSettings.Parse(Ids, "=");
+            var options = new ParseOptions(ParseOptions.InMemory(Ids).OpenFullGcode, log.Add, () => throw new InvalidOperationException("no home directory"));
+
+            var note = PrusaModifiedSettingsPlaceholder.Instance.Render(new ComputedContext(settings, options));
+
+            Assert.AreEqual(string.Empty, note);
+            Assert.IsTrue(log.Any(l => l.Contains("no home directory")), string.Join("\n", log));
         }
 
         [TestMethod]

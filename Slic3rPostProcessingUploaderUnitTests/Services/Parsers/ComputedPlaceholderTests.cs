@@ -42,6 +42,28 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Parsers
         }
 
         [TestMethod]
+        public void ShouldRenderAnEmptyValueAndCarryOnWhenAProviderThrows()
+        {
+            // A note section must never cost the user their print log: the base class is the last line of defence
+            // when a placeholder breaks its "never throw" contract, and a broken debug log must not make it worse.
+            var log = new List<string>();
+            var parser = new TestParser(
+                "A: {{broken}}\nB: {{fine}}",
+                new ComputedPlaceholder("broken", _ => throw new InvalidOperationException("boom")),
+                Constant("fine", "ok"));
+            var options = new ParseOptions(ParseOptions.InMemory(Gcode).OpenFullGcode, message =>
+            {
+                log.Add(message);
+                throw new IOException("debug file is gone");
+            });
+
+            var result = parser.ParseGcode(Gcode, options);
+
+            Assert.AreEqual("A: \nB: ok", result.settings.note);
+            Assert.IsTrue(log.Any(l => l.Contains("broken") && l.Contains("boom")), string.Join("\n", log));
+        }
+
+        [TestMethod]
         public void ShouldRunAProviderTheTemplateReferences()
         {
             var parser = new TestParser("Models: {{models}}", Constant("models", "one"));

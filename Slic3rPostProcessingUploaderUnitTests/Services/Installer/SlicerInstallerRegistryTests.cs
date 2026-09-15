@@ -39,6 +39,9 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services.Installer
             CollectionAssert.IsSubsetOf(SlicerInstallerRegistry.OrcaFamilyConfigRoots().Select(Path.GetFileName).ToList(), roots);
             CollectionAssert.Contains(roots, "BambuStudio");
             CollectionAssert.Contains(roots, "PrusaSlicer");
+            // PrusaSlicer 2.x pre-releases keep their own data directory next to the stable one.
+            CollectionAssert.Contains(roots, "PrusaSlicer-alpha");
+            CollectionAssert.Contains(roots, "PrusaSlicer-beta");
             Assert.AreEqual(roots.Count, roots.Distinct().Count());
         }
     }

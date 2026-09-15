@@ -29,11 +29,11 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
         private static string Render(ComputedContext context)
         {
             var settings = context.Settings;
-            var locator = new PrusaPresetLocator(context.ConfigRoots(), context.DebugLog);
             var changes = new List<string>();
 
             try
             {
+                var locator = new PrusaPresetLocator(context.ConfigRoots(), context.DebugLog);
                 Compare(settings, [locator.Read("print", settings.Get("print_settings_id"))], changes);
                 Compare(settings, FilamentPresets(settings, locator), changes);
                 Compare(settings, [locator.Read("printer", settings.Get("printer_settings_id"))], changes);
