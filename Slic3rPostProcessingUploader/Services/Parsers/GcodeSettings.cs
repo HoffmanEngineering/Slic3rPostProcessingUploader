@@ -85,6 +85,14 @@ namespace Slic3rPostProcessingUploader.Services.Parsers
         }
 
         /// <summary>
+        /// Like <see cref="Get"/>, but tells a key that is absent apart from one whose value is empty.
+        /// </summary>
+        public bool TryGet(string key, out string value)
+        {
+            return values.TryGetValue(key, out value!);
+        }
+
+        /// <summary>
         /// Stores a computed value under the key, replacing any "; key = value" line of the same name.
         /// </summary>
         public void Set(string key, string value)

@@ -67,12 +67,14 @@ namespace Slic3rPostProcessingUploader.Services.Parsers.Computed
         }
 
         /// <summary>
-        /// Orca's outer_wall_line_width may be a percentage of the nozzle diameter ("105%"); only an absolute value is
-        /// usable, so the generic line_width is the fallback and, failing that, the centreline box is shown as-is.
+        /// The outer-wall width (Orca/Bambu outer_wall_line_width, PrusaSlicer external_perimeter_extrusion_width) may be
+        /// a percentage ("105%") or PrusaSlicer's 0 for "auto"; only an absolute value is usable, so the generic width
+        /// (line_width / extrusion_width) is the fallback and, failing that, the centreline box is shown as-is. The
+        /// key sets are disjoint across slicers, so one ordered list serves them all.
         /// </summary>
         private static double LineWidth(GcodeSettings settings)
         {
-            foreach (var key in new[] { "outer_wall_line_width", "line_width" })
+            foreach (var key in new[] { "outer_wall_line_width", "external_perimeter_extrusion_width", "line_width", "extrusion_width" })
             {
                 if (double.TryParse(settings.Get(key), NumberStyles.Float, CultureInfo.InvariantCulture, out var width)
                     && double.IsFinite(width) && width > 0)
