@@ -48,6 +48,14 @@ updates:
           - minor
           - patch
 
+    ignore:
+      # Snapshooter.MSTest 1.3 depends on MSTest >= 4.1, while the tests are still on
+      # MSTest 3. A minor bump of it therefore drags in a major MSTest change, which
+      # NuGet reports as a package downgrade and the test run fails. Lift this when the
+      # tests move to MSTest 4, and bump both together.
+      - dependency-name: "Snapshooter.MSTest"
+        versions: [">= 1.3.0"]
+
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
