@@ -30,6 +30,14 @@ updates:
       default-days: 5
     open-pull-requests-limit: 5
 
+    ignore:
+      # Snapshooter.MSTest 1.2+ depends on MSTest 4, so its "minor" bump is really an MSTest
+      # major: with the tests still on MSTest 3, 1.3.1 fails every snapshot test with
+      # "Could not load file or assembly 'MSTest.TestFramework, Version=4.1.0.0'". Drop this
+      # entry in the change that moves the tests to MSTest 4.
+      - dependency-name: "Snapshooter.MSTest"
+        versions: [">= 1.2.0"]
+
     groups:
       # xUnit, the runner and coverlet are coupled through the test platform, so a partial
       # bump produces a combination that was never tested together upstream.
