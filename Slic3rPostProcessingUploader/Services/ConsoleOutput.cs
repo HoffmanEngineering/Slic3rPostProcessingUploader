@@ -1,3 +1,4 @@
+using PrintLog.SlicerSettings;
 using System.Text;
 
 namespace Slic3rPostProcessingUploader.Services;

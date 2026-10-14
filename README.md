@@ -233,11 +233,11 @@ The built-in templates are plain text files using the same syntax, so they make 
 
 | Slicer | Default | Full |
 | --- | --- | --- |
-| OrcaSlicer | [default.txt](Slic3rPostProcessingUploader/Templates/OrcaSlicer/default.txt) | [full.txt](Slic3rPostProcessingUploader/Templates/OrcaSlicer/full.txt) |
-| PrusaSlicer | [default.txt](Slic3rPostProcessingUploader/Templates/PrusaSlicer/default.txt) | [full.txt](Slic3rPostProcessingUploader/Templates/PrusaSlicer/full.txt) |
-| Bambu Studio | [default.txt](Slic3rPostProcessingUploader/Templates/BambuStudio/default.txt) | [full.txt](Slic3rPostProcessingUploader/Templates/BambuStudio/full.txt) |
-| FLSun Slicer | [default.txt](Slic3rPostProcessingUploader/Templates/FLSunSlicer/default.txt) | [full.txt](Slic3rPostProcessingUploader/Templates/FLSunSlicer/full.txt) |
-| Anycubic Slicer Next | [default.txt](Slic3rPostProcessingUploader/Templates/AnycubicSlicerNext/default.txt) | [full.txt](Slic3rPostProcessingUploader/Templates/AnycubicSlicerNext/full.txt) |
+| OrcaSlicer | [default.txt](PrintLog.SlicerSettings/Templates/OrcaSlicer/default.txt) | [full.txt](PrintLog.SlicerSettings/Templates/OrcaSlicer/full.txt) |
+| PrusaSlicer | [default.txt](PrintLog.SlicerSettings/Templates/PrusaSlicer/default.txt) | [full.txt](PrintLog.SlicerSettings/Templates/PrusaSlicer/full.txt) |
+| Bambu Studio | [default.txt](PrintLog.SlicerSettings/Templates/BambuStudio/default.txt) | [full.txt](PrintLog.SlicerSettings/Templates/BambuStudio/full.txt) |
+| FLSun Slicer | [default.txt](PrintLog.SlicerSettings/Templates/FLSunSlicer/default.txt) | [full.txt](PrintLog.SlicerSettings/Templates/FLSunSlicer/full.txt) |
+| Anycubic Slicer Next | [default.txt](PrintLog.SlicerSettings/Templates/AnycubicSlicerNext/default.txt) | [full.txt](PrintLog.SlicerSettings/Templates/AnycubicSlicerNext/full.txt) |
 
 Example:
 `Slic3rPostProcessingUploader --template "C:\tmp\my-custom-template.txt"`
@@ -316,6 +316,43 @@ git push origin v1.2.0
 The [Release workflow](.github/workflows/release.yml) builds and tests on every platform, publishes the four binaries above with the version taken from the tag (so `--version` prints `1.2.0`), and creates the GitHub Release with notes generated from the merged pull requests since the previous tag. PRs are grouped by label per [`.github/release.yml`](.github/release.yml), so label PRs `enhancement`, `bug`, or `documentation` to land them in the right section.
 
 Tags are protected by a repository ruleset: they can only be created, moved, or deleted by a repository admin.
+
+## The PrintLog.SlicerSettings library
+
+The parsers, binary G-code support and note templates live in a class library, [`PrintLog.SlicerSettings`](PrintLog.SlicerSettings/README.md), which the uploader references as a project. It is also published to nuget.org so the [3D Print Log API](https://github.com/HoffmanEngineering/3d-print-log-api) can parse the settings block a connector (such as printlog-bridge) sends, with the same results and the same notes as this uploader, instead of every connector porting the parsers:
+
+```csharp
+SlicerConfigResult result = SlicerConfigParser.Parse(configBlock, header); // header is optional
+// result.Slicer, result.Version, result.Settings["print_settings_id"], result.Note,
+// result.EstimatedPrintTimeSeconds, result.TotalFilamentMg, result.Filaments
+```
+
+`SlicerConfigParser`, `SlicerConfigResult` and `FilamentEstimate` are the package's whole public surface. The uploader uses the rest (whole-file parsing, binary G-code, its wire DTO) through `InternalsVisibleTo`, so none of that is a promise to package consumers.
+
+The library [README](PrintLog.SlicerSettings/README.md) says which text to pass for each slicer and what a settings block cannot provide (`{{models}}` needs the toolpaths; `{{modified_settings}}` cannot tell saved from unsaved changes without the user's preset files).
+
+### Releasing the library
+
+The library versions independently of the uploader and has its own tag prefix, `lib-v`, which the uploader's `v*` release workflow does not match:
+
+```bash
+git tag lib-v0.1.0
+git push origin lib-v0.1.0
+```
+
+The [publish-library workflow](.github/workflows/publish-library.yml) builds and runs every test (the uploader is the library's first consumer), packs `PrintLog.SlicerSettings` 0.1.0 with the embedded templates, README and Source Link, and pushes it to nuget.org. nuget.org versions are immutable, so a tag cannot be republished: fix forward with the next version. While the version is 0.x the API may change between minor versions; 1.0.0 is the first release that promises compatibility.
+
+It publishes with nuget.org [trusted publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing): the job exchanges a GitHub OIDC token for an API key that lives about an hour, so no long-lived key is stored in the repository.
+
+One-time setup, done by the owner before the first tag:
+
+1. Sign in to [nuget.org](https://www.nuget.org) with the account (or organization) that will own the package. The repository variable below holds its profile name.
+2. Under **Trusted Publishing**, add a GitHub Actions policy with repository owner `HoffmanEngineering`, repository `Slic3rPostProcessingUploader`, workflow file `publish-library.yml`, and no environment. These must match exactly: renaming the workflow file or adding an `environment:` to its publish job stops publishing until the policy is updated.
+3. In this repository's **Settings → Secrets and variables → Actions → Variables**, add the repository variable `NUGET_USER` = `HoffmanEngineering` (the nuget.org profile name, not an email address). It is a variable, not a secret.
+4. Optionally, [reserve the `PrintLog.` ID prefix](https://learn.microsoft.com/nuget/nuget-org/id-prefix-reservation) so packages under it show as verified and nobody else can publish one.
+5. Push the first `lib-v*` tag.
+
+Why nuget.org rather than GitHub Packages or a git submodule: a public nuget.org package needs no credentials to restore, so the API's CI, its deploy workflow, Dependabot and every developer machine consume it like any other package. GitHub Packages requires an authenticated feed even for public packages (a `nuget.config` source plus a `read:packages` token in every place that restores), and a submodule would make the API compile this repository's sources on every build and pin versions by commit rather than by package version.
 
 ## Questions & Discussions
 

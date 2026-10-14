@@ -1,0 +1,86 @@
+name: Publish PrintLog.SlicerSettings
+
+# The library has its own tag prefix so it versions independently of the uploader: release.yml
+# matches `v*`, which `lib-v0.1.0` does not. `lib-v0.1.0` publishes package version 0.1.0.
+on:
+  push:
+    tags:
+      - 'lib-v*'
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+# Read-only by default; only the publish job can mint an OIDC token.
+permissions:
+  contents: read
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+      - name: Setup .NET SDK
+        id: setup-dotnet
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - name: Enforce SDK Version
+        run: dotnet new globaljson --sdk-version ${{ steps.setup-dotnet.outputs.dotnet-version }} --force
+      - name: Restore
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+      # Every test, not just the library's: the uploader is the library's first consumer, so a package that breaks it
+      # should not ship either.
+      - name: Test
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Pack
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          dotnet pack PrintLog.SlicerSettings/PrintLog.SlicerSettings.csproj \
+            --configuration Release --output dist -p:Version="${TAG#lib-v}"
+          ls -l dist
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: nupkg
+          path: dist/*.nupkg
+          if-no-files-found: error
+
+  # Separate job so the OIDC token exists only here, after the package has been built and tested.
+  #
+  # Trusted publishing: nuget.org trusts this repository and this workflow file (see "Releasing the library" in the
+  # README), NuGet/login exchanges the GitHub OIDC token for an API key that lives about an hour, and no long-lived key
+  # is stored anywhere. NUGET_USER is a repository variable (not a secret) holding the nuget.org
+  # profile name that owns the policy. The policy names this file, so renaming it, or adding an `environment:` to
+  # this job, breaks publishing until the policy is updated to match.
+  publish:
+    needs: pack
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Download package
+        uses: actions/download-artifact@v8
+        with:
+          name: nupkg
+          path: dist
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - name: NuGet login (OIDC)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+      # No --skip-duplicate: nuget.org versions are immutable, so pushing a version that already exists is a mistake
+      # (a re-run tag, or a tag moved after publishing) and should fail loudly.
+      - name: Push to nuget.org
+        run: dotnet nuget push "dist/*.nupkg" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json

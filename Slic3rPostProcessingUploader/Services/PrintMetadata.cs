@@ -1,4 +1,4 @@
-using Slic3rPostProcessingUploader.Services.Parsers;
+using PrintLog.SlicerSettings;
 
 namespace Slic3rPostProcessingUploader.Services;
 

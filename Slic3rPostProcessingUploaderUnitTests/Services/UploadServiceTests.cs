@@ -1,5 +1,5 @@
 using Slic3rPostProcessingUploader.Services;
-using Slic3rPostProcessingUploader.Services.Parsers;
+using PrintLog.SlicerSettings;
 using System.Net;
 using System.Text;
 

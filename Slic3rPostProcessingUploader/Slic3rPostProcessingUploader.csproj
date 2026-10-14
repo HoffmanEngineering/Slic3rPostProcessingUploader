@@ -22,6 +22,8 @@
     <PublishSingleFile>true</PublishSingleFile>
     <PublishAot>true</PublishAot>
 	<RuntimeIdentifiers>win-x64;osx-x64;osx-arm64;linux-x64</RuntimeIdentifiers>
+	<!-- PrintLog.SlicerSettings generates an XML doc file for its package; it is no use next to a single-file binary. -->
+	<PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
   </PropertyGroup>
 
   <ItemGroup>
@@ -31,18 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Built-in note templates, loaded by EmbeddedNoteTemplate. LogicalName is spelled out so the resource name is
-         the same on every OS (%(RecursiveDir) would use a backslash on Windows). -->
-    <EmbeddedResource Include="Templates/OrcaSlicer/default.txt" LogicalName="Templates/OrcaSlicer/default.txt" />
-    <EmbeddedResource Include="Templates/OrcaSlicer/full.txt" LogicalName="Templates/OrcaSlicer/full.txt" />
-    <EmbeddedResource Include="Templates/PrusaSlicer/default.txt" LogicalName="Templates/PrusaSlicer/default.txt" />
-    <EmbeddedResource Include="Templates/PrusaSlicer/full.txt" LogicalName="Templates/PrusaSlicer/full.txt" />
-    <EmbeddedResource Include="Templates/BambuStudio/default.txt" LogicalName="Templates/BambuStudio/default.txt" />
-    <EmbeddedResource Include="Templates/BambuStudio/full.txt" LogicalName="Templates/BambuStudio/full.txt" />
-    <EmbeddedResource Include="Templates/FLSunSlicer/default.txt" LogicalName="Templates/FLSunSlicer/default.txt" />
-    <EmbeddedResource Include="Templates/FLSunSlicer/full.txt" LogicalName="Templates/FLSunSlicer/full.txt" />
-    <EmbeddedResource Include="Templates/AnycubicSlicerNext/default.txt" LogicalName="Templates/AnycubicSlicerNext/default.txt" />
-    <EmbeddedResource Include="Templates/AnycubicSlicerNext/full.txt" LogicalName="Templates/AnycubicSlicerNext/full.txt" />
+    <ProjectReference Include="..\PrintLog.SlicerSettings\PrintLog.SlicerSettings.csproj" />
   </ItemGroup>
 
 </Project>

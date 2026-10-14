@@ -19,6 +19,15 @@ dotnet publish --configuration Release
 
 This is a .NET 10 console application that acts as a post-processing script for 3D printer slicers. After a slicer exports G-code, this tool parses the file, extracts print settings, and opens https://www.3dprintlog.com with pre-filled print details.
 
+The solution has two halves:
+
+- **`PrintLog.SlicerSettings/`**: a class library with the parsers, binary G-code, the note templates and their renderer. It is published to nuget.org (see "Releasing the library" in the README) so the 3D Print Log API can parse a settings block a connector sends. It must stay free of console, browser, network and telemetry dependencies; when parsing needs to report something, it takes a callback (`SlicerDetector.Detect`'s score callback, `ParseOptions.DebugLog`). It is `IsAotCompatible`, because the uploader is published with Native AOT. Tests: `PrintLog.SlicerSettings.Tests/`.
+- **`Slic3rPostProcessingUploader/`**: the console app: arguments, telemetry, upload, browser, installer/wizard. Tests: `Slic3rPostProcessingUploaderUnitTests/`.
+
+The library's public surface is only what the API needs: `SlicerConfigParser`, `SlicerConfigResult` and `FilamentEstimate` (`SlicerConfigParserTests.PublicSurface_IsOnlyTheEntryPointAndItsResult` pins the list). Everything else is `internal`; the uploader and both test projects see it through `InternalsVisibleTo`. A public member is a promise to package consumers, and nuget.org versions are immutable, so widen the surface deliberately.
+
+`Parse` runs on untrusted connector input, so everything it reaches must be linear in the input and must not throw or wrap on out-of-range numbers. Do not add an unanchored regex that can rescan from many starting points (the thumbnail regex took 43 s on 1 MB); `HostileInputTests` and `SlicerConfigParserTests.Parse_HostileInput_IsLinear` time the known shapes.
+
 ### Data Flow
 
 ```
@@ -31,10 +40,14 @@ G-code file → ArgumentParser → ParserFactory → Slicer-specific Parser → 
 - **Services/UploadService.cs**: Posts the DTO to the API over an injected `HttpClient`; every failure becomes a `UserFacingException`
 - **Services/PrintMetadata.cs**: Pure helpers for `file_name`/`print_name` (honours `SLIC3R_PP_OUTPUT_NAME`) and the new-print URL
 - **ArgumentParser.cs**: CLI argument handling (`--default`, `--full`, `--template`, `--debug`, etc.)
-- **ParserFactory.cs**: A `SlicerRegistration` registry (one entry per slicer). Detection is the first registration whose `Detect` matches; otherwise every registration's full template is scored against the G-code and the best match wins (ties go to the earlier entry, so Orca is the ultimate default)
-- **Services/Parsers/{SlicerName}/**: Each slicer has its own directory containing its parser class (implementing `IGcodeParser`)
-- **Templates/{SlicerName}/default.txt** and **full.txt**: The built-in note templates, compiled in as embedded resources and loaded through `Services/EmbeddedNoteTemplate.cs`. They are LF-only (enforced by `.gitattributes`) and the loader strips the trailing newline so rendered notes are byte-identical across platforms
-- **CuraSettingDto.cs**: Main DTO sent to the API
+- **Services/ParserFactory.cs**: The uploader's adapter over the library's `SlicerDetector`: picks the template the command line asked for, warns when the slicer was not recognized, and sends the template and `{Name}PercentMatch` telemetry
+- **PrintLog.SlicerSettings/ThumbnailScanner.cs**: Finds thumbnail blocks in one pass; it replaced a regex that was quadratic on unterminated blocks, and `HostileInputTests` checks it against that regex
+- **PrintLog.SlicerSettings/SlicerDetector.cs**: A `SlicerRegistration` registry (one entry per slicer). Detection is the first registration whose `Detect` matches; otherwise every registration's full template is scored against the G-code and the best match wins (ties go to the earlier entry, so Orca is the ultimate default)
+- **PrintLog.SlicerSettings/SlicerConfigParser.cs**: The entry point for text that is not a whole file: a settings block plus an optional header, rendered with the slicer's default template, into an immutable `SlicerConfigResult` (absent totals are null). Never touches the disk (`ParseOptions` with no config roots), so `{{modified_settings}}` is the flat list and `{{models}}` is empty; skips thumbnails; and catches everything, so it never throws
+- **PrintLog.SlicerSettings/{SlicerName}/**: Each slicer has its own directory containing its parser class (implementing `IGcodeParser`)
+- **PrintLog.SlicerSettings/Templates/{SlicerName}/default.txt** and **full.txt**: The built-in note templates, compiled into the library as embedded resources and loaded through `EmbeddedNoteTemplate.cs`. They are LF-only (enforced by `.gitattributes`) and the loader strips the trailing newline so rendered notes are byte-identical across platforms
+- **PrintLog.SlicerSettings/CuraSettingDto.cs**: Main DTO sent to the API
+- **PrintLog.SlicerSettings/UserFacingException.cs**: An error with a hint for the user. It lives in the library because `BinaryGcode` throws it; the uploader's `ConsoleOutput` prints the hint
 
 ### Supported Slicers
 
@@ -66,24 +79,25 @@ Rules the installer must keep, because users' own profiles live next to ours:
 
 ### Template System
 
-Templates use `{{setting_name}}` placeholders that get replaced with values from G-code comments like `; setting_name = value`. Built-in templates are `.txt` files under `Slic3rPostProcessingUploader/Templates/`; custom ones come from `--template <path>` via `NoteTemplateFromFile`. Both implement `INoteTemplate`.
+Templates use `{{setting_name}}` placeholders that get replaced with values from G-code comments like `; setting_name = value`. Built-in templates are `.txt` files under `PrintLog.SlicerSettings/Templates/`; custom ones come from `--template <path>` via `NoteTemplateFromFile`. Both implement `INoteTemplate`.
 
 A placeholder that is alone on its line renders as a block: each line of the value inherits the indentation, CRLF templates keep CRLF, and an empty value removes the line (the heading above stays). Inline placeholders are substituted verbatim.
 
 ### Computed placeholders
 
-`Services/Parsers/Computed/` holds placeholders whose value comes from code (`ComputedPlaceholder(Key, Render)`), currently `{{filament_profiles}}` (distinct filament profiles with counts), `{{models}}` (per-object size from a streaming scan of the whole file, `ObjectBoundsScanner`) and `{{modified_settings}}` (`different_settings_to_system`, split into saved/unsaved via the user's preset files, `UserPresetLocator`). The last two render a whole section — heading included, trailing newline — so that on a line of their own they vanish entirely when empty. Rules:
+`PrintLog.SlicerSettings/Computed/` holds placeholders whose value comes from code (`ComputedPlaceholder(Key, Render)`), currently `{{filament_profiles}}` (distinct filament profiles with counts), `{{models}}` (per-object size from a streaming scan of the whole file, `ObjectBoundsScanner`) and `{{modified_settings}}` (`different_settings_to_system`, split into saved/unsaved via the user's preset files, `UserPresetLocator`). The last two render a whole section — heading included, trailing newline — so that on a line of their own they vanish entirely when empty. Rules:
 
 - A parser lists what it supports in `ComputedPlaceholders`; only `OrcaParser` does today. A placeholder runs only when the active template references its key, so templates without `{{models}}` never pay for the full-file scan
 - `Render` must never throw: catch, `context.DebugLog(...)`, and return empty or a degraded value. The uploader must not fail a print log because of a note section
 - Everything a placeholder may touch comes from `ParseOptions` (stream opener, debug log, slicer config roots). `ParseGcode(string)` uses `ParseOptions.InMemory`, which has no file or config access, so unit tests and fixture snapshots are hermetic; `Program.cs` passes the real file and `SlicerInstallerRegistry.OrcaFamilyConfigRoots`
+- `SlicerConfigParser` (the API's entry point) has only a settings block, so a placeholder there sees no toolpaths and no config roots. Make sure a new one still renders something sensible from settings alone, or nothing
 - Computed keys are excluded from the parser-factory heuristic score and from `TemplatePlaceholderCoverageTests`
 
 ## Testing
 
-Uses MSTest with Snapshooter for snapshot testing. Real G-code fixtures live under `Slic3rPostProcessingUploaderUnitTests/TestData/{SlicerName}/` and are copied to the test output directory. Use `TestData.Load(relativePath)` for a named fixture and `TestData.EnumerateFixtures(slicerFolder)` for data-driven coverage of every version in a slicer's folder.
+Uses MSTest with Snapshooter for snapshot testing. Real G-code fixtures live under `PrintLog.SlicerSettings.Tests/TestData/{SlicerName}/` and are copied to the test output directory. Use `TestData.Load(relativePath)` for a named fixture and `TestData.EnumerateFixtures(slicerFolder)` for data-driven coverage of every version in a slicer's folder.
 
-Each fixture test must verify that `ParserFactory` selects the expected parser without emitting its unrecognized-slicer warning, then parse and snapshot the result. Use the fixture filename as the snapshot name and hash the `settings.Snapshot` field to avoid cross-platform line-ending issues:
+Each fixture test must verify that `SlicerDetector` recognizes the expected parser by its marker (so the uploader would not warn), via `ParserFixtureAssertions`, then parse and snapshot the result. Use the fixture filename as the snapshot name and hash the `settings.Snapshot` field to avoid cross-platform line-ending issues:
 
 ```csharp
 Snapshot.Match(
@@ -100,12 +114,12 @@ Installer unit tests run against pruned copies of real slicer config trees under
 
 ## Adding a New Slicer
 
-1. Create `Services/Parsers/{SlicerName}/` directory
+1. Create `PrintLog.SlicerSettings/{SlicerName}/` directory
 2. Implement parser class deriving from `GcodeParserBase` with a static `Is{SlicerName}(string gcode)` detection method
-3. Create `Templates/{SlicerName}/default.txt` and `full.txt` and add both as `<EmbeddedResource>` entries in `Slic3rPostProcessingUploader.csproj` (the `LogicalName` must be `Templates/{SlicerName}/{kind}.txt`). The parser's `CreateDefaultTemplate()` returns `EmbeddedNoteTemplate.Default("{SlicerName}")`
-4. Add one `SlicerRegistration` line to the `Slicers` array in `ParserFactory.cs` (name, detection method, both template factories, parser factory). The name is used for the `{Name}PercentMatch` telemetry event
-5. Add a real G-code fixture under `Slic3rPostProcessingUploaderUnitTests/TestData/{SlicerName}/`
-6. Add data-driven parser-factory, parsing, and snapshot coverage for every fixture in that folder
+3. Create `Templates/{SlicerName}/default.txt` and `full.txt` and add both as `<EmbeddedResource>` entries in `PrintLog.SlicerSettings.csproj` (the `LogicalName` must be `Templates/{SlicerName}/{kind}.txt`). The parser's `CreateDefaultTemplate()` returns `EmbeddedNoteTemplate.Default("{SlicerName}")`
+4. Add one `SlicerRegistration` line to the `Slicers` array in `SlicerDetector.cs` (name, detection method, both template factories, parser factory). The name is used for the `{Name}PercentMatch` telemetry event
+5. Add a real G-code fixture under `PrintLog.SlicerSettings.Tests/TestData/{SlicerName}/`
+6. Add data-driven detection, parsing, and snapshot coverage for every fixture in that folder, and add the folder to `SlicerConfigParserTests.Fixtures` so settings-block parsing is covered too
 7. Add the slicer to `EmbeddedNoteTemplateTests`, `TemplatePlaceholderCoverageTests`, and the template table in the README
 
 ## Debug Mode

@@ -1,3 +1,4 @@
+using PrintLog.SlicerSettings;
 using Slic3rPostProcessingUploader.Services;
 
 namespace Slic3rPostProcessingUploaderUnitTests.Services
