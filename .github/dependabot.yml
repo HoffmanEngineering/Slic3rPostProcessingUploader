@@ -15,11 +15,19 @@ version: 2
 #   - Transitive-only advisories. Dependabot bumps what the project files declare; a
 #     vulnerable transitive package is only fixed when its parent publishes.
 
+# Every entry waits five days before proposing a new version. Compromised releases
+# (the 2025 npm worms, for one) are usually pulled within hours to a day, and
+# patch/minor bumps are auto-merged once CI is green in the repos that run
+# dependabot-auto-merge.yml, so without a delay a malicious patch release is exactly
+# what would pass CI and merge itself. Security updates ignore the cooldown.
+
 updates:
   - package-ecosystem: nuget
     directory: "/"
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 5
     open-pull-requests-limit: 5
 
     groups:
@@ -44,6 +52,8 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 5
     open-pull-requests-limit: 5
     groups:
       actions:
