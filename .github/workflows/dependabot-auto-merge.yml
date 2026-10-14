@@ -32,7 +32,7 @@ jobs:
     steps:
       - name: Read Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@v3
 
       # An allowlist, not "not major": a grouped PR reports its largest update, and an
       # empty or unrecognised type falls through to manual review.
