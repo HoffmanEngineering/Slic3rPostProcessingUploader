@@ -8,7 +8,7 @@ namespace PrintLog.SlicerSettings
     /// header a PrusaSlicer text export would have, so the rest of the pipeline is unaware of the binary format.
     /// The G-code blocks themselves (Heatshrink + MeatPack) are never decoded: only the metadata is needed here.
     /// </summary>
-    public static class BinaryGcode
+    internal static class BinaryGcode
     {
         private const uint SupportedVersion = 1;
         private const int Base64LineLength = 78;

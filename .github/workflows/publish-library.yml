@@ -1,7 +1,7 @@
 name: Publish PrintLog.SlicerSettings
 
 # The library has its own tag prefix so it versions independently of the uploader: release.yml
-# matches `v*`, which `lib-v1.0.0` does not. `lib-v1.0.0` publishes package version 1.0.0.
+# matches `v*`, which `lib-v0.1.0` does not. `lib-v0.1.0` publishes package version 0.1.0.
 on:
   push:
     tags:

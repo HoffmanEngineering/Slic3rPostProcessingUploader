@@ -1,6 +1,6 @@
 namespace PrintLog.SlicerSettings
 {
-    public class PrintFilamentSummaryDto
+    internal class PrintFilamentSummaryDto
     {
         /// <summary>
         /// GUID

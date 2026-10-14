@@ -1,6 +1,6 @@
 ﻿namespace PrintLog.SlicerSettings
 {
-    public enum PrintFilamentSourceMeasurement
+    internal enum PrintFilamentSourceMeasurement
     {
         Weight = 1,
         Length = 2,

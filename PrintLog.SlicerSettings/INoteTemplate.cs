@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace PrintLog.SlicerSettings
 {
-    public interface INoteTemplate
+    internal interface INoteTemplate
     {
         public string getNoteTemplate();
     }

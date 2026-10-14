@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace PrintLog.SlicerSettings
 {
-    public class CuraSettingDto
+    internal class CuraSettingDto
     {
         public required string Slicer { get; set; }
         public required string CuraVersion { get; set; }
@@ -24,7 +24,7 @@ namespace PrintLog.SlicerSettings
         }
     }
 
-    public class CuraSettings
+    internal class CuraSettings
     {
         public string note { get; set; } = "";
 

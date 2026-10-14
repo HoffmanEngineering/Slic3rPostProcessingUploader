@@ -1,6 +1,6 @@
 namespace PrintLog.SlicerSettings
 {
-    public interface IGcodeParser
+    internal interface IGcodeParser
     {
         /// <summary>
         /// Parses G-code that is entirely in memory. Computed placeholders that need the full toolpath read it from

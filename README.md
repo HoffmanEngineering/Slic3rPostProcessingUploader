@@ -323,8 +323,11 @@ The parsers, binary G-code support and note templates live in a class library, [
 
 ```csharp
 SlicerConfigResult result = SlicerConfigParser.Parse(configBlock, header); // header is optional
-// result.Slicer, result.Version, result.Settings["print_settings_id"], result.Note, result.Dto
+// result.Slicer, result.Version, result.Settings["print_settings_id"], result.Note,
+// result.EstimatedPrintTimeSeconds, result.TotalFilamentMg, result.Filaments
 ```
+
+`SlicerConfigParser`, `SlicerConfigResult` and `FilamentEstimate` are the package's whole public surface. The uploader uses the rest (whole-file parsing, binary G-code, its wire DTO) through `InternalsVisibleTo`, so none of that is a promise to package consumers.
 
 The library [README](PrintLog.SlicerSettings/README.md) says which text to pass for each slicer and what a settings block cannot provide (`{{models}}` needs the toolpaths; `{{modified_settings}}` cannot tell saved from unsaved changes without the user's preset files).
 
@@ -333,11 +336,11 @@ The library [README](PrintLog.SlicerSettings/README.md) says which text to pass 
 The library versions independently of the uploader and has its own tag prefix, `lib-v`, which the uploader's `v*` release workflow does not match:
 
 ```bash
-git tag lib-v1.0.0
-git push origin lib-v1.0.0
+git tag lib-v0.1.0
+git push origin lib-v0.1.0
 ```
 
-The [publish-library workflow](.github/workflows/publish-library.yml) builds and runs every test (the uploader is the library's first consumer), packs `PrintLog.SlicerSettings` 1.0.0 with the embedded templates, README and Source Link, and pushes it to nuget.org. nuget.org versions are immutable, so a tag cannot be republished: fix forward with the next version.
+The [publish-library workflow](.github/workflows/publish-library.yml) builds and runs every test (the uploader is the library's first consumer), packs `PrintLog.SlicerSettings` 0.1.0 with the embedded templates, README and Source Link, and pushes it to nuget.org. nuget.org versions are immutable, so a tag cannot be republished: fix forward with the next version. While the version is 0.x the API may change between minor versions; 1.0.0 is the first release that promises compatibility.
 
 It publishes with nuget.org [trusted publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing): the job exchanges a GitHub OIDC token for an API key that lives about an hour, so no long-lived key is stored in the repository.
 

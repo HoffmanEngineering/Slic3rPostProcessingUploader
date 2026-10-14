@@ -7,7 +7,7 @@ namespace PrintLog.SlicerSettings
     /// placeholder must scan the toolpath, where to send diagnostics that only matter under --debug, and which slicer
     /// config directories on this machine may be consulted for the user's own preset files.
     /// </summary>
-    public sealed class ParseOptions(Func<Stream> openFullGcode, Action<string> debugLog, Func<IEnumerable<string>>? configRoots = null)
+    internal sealed class ParseOptions(Func<Stream> openFullGcode, Action<string> debugLog, Func<IEnumerable<string>>? configRoots = null)
     {
         public Func<Stream> OpenFullGcode { get; } = openFullGcode;
         public Action<string> DebugLog { get; } = debugLog;

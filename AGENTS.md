@@ -24,7 +24,9 @@ The solution has two halves:
 - **`PrintLog.SlicerSettings/`**: a class library with the parsers, binary G-code, the note templates and their renderer. It is published to nuget.org (see "Releasing the library" in the README) so the 3D Print Log API can parse a settings block a connector sends. It must stay free of console, browser, network and telemetry dependencies; when parsing needs to report something, it takes a callback (`SlicerDetector.Detect`'s score callback, `ParseOptions.DebugLog`). It is `IsAotCompatible`, because the uploader is published with Native AOT. Tests: `PrintLog.SlicerSettings.Tests/`.
 - **`Slic3rPostProcessingUploader/`**: the console app: arguments, telemetry, upload, browser, installer/wizard. Tests: `Slic3rPostProcessingUploaderUnitTests/`.
 
-The library's public surface is an API another repository builds against, so changing or removing a public member is a breaking change for the package. Keep new types `internal` unless the uploader or the API needs them; both test projects see internals through `InternalsVisibleTo`.
+The library's public surface is only what the API needs: `SlicerConfigParser`, `SlicerConfigResult` and `FilamentEstimate` (`SlicerConfigParserTests.PublicSurface_IsOnlyTheEntryPointAndItsResult` pins the list). Everything else is `internal`; the uploader and both test projects see it through `InternalsVisibleTo`. A public member is a promise to package consumers, and nuget.org versions are immutable, so widen the surface deliberately.
+
+`Parse` runs on untrusted connector input, so everything it reaches must be linear in the input and must not throw or wrap on out-of-range numbers. Do not add an unanchored regex that can rescan from many starting points (the thumbnail regex took 43 s on 1 MB); `HostileInputTests` and `SlicerConfigParserTests.Parse_HostileInput_IsLinear` time the known shapes.
 
 ### Data Flow
 
@@ -39,8 +41,9 @@ G-code file → ArgumentParser → ParserFactory → Slicer-specific Parser → 
 - **Services/PrintMetadata.cs**: Pure helpers for `file_name`/`print_name` (honours `SLIC3R_PP_OUTPUT_NAME`) and the new-print URL
 - **ArgumentParser.cs**: CLI argument handling (`--default`, `--full`, `--template`, `--debug`, etc.)
 - **Services/ParserFactory.cs**: The uploader's adapter over the library's `SlicerDetector`: picks the template the command line asked for, warns when the slicer was not recognized, and sends the template and `{Name}PercentMatch` telemetry
+- **PrintLog.SlicerSettings/ThumbnailScanner.cs**: Finds thumbnail blocks in one pass; it replaced a regex that was quadratic on unterminated blocks, and `HostileInputTests` checks it against that regex
 - **PrintLog.SlicerSettings/SlicerDetector.cs**: A `SlicerRegistration` registry (one entry per slicer). Detection is the first registration whose `Detect` matches; otherwise every registration's full template is scored against the G-code and the best match wins (ties go to the earlier entry, so Orca is the ultimate default)
-- **PrintLog.SlicerSettings/SlicerConfigParser.cs**: The entry point for text that is not a whole file: a settings block plus an optional header, rendered with the slicer's default template. Never touches the disk (`ParseOptions` with no config roots), so `{{modified_settings}}` is the flat list and `{{models}}` is empty
+- **PrintLog.SlicerSettings/SlicerConfigParser.cs**: The entry point for text that is not a whole file: a settings block plus an optional header, rendered with the slicer's default template, into an immutable `SlicerConfigResult` (absent totals are null). Never touches the disk (`ParseOptions` with no config roots), so `{{modified_settings}}` is the flat list and `{{models}}` is empty; skips thumbnails; and catches everything, so it never throws
 - **PrintLog.SlicerSettings/{SlicerName}/**: Each slicer has its own directory containing its parser class (implementing `IGcodeParser`)
 - **PrintLog.SlicerSettings/Templates/{SlicerName}/default.txt** and **full.txt**: The built-in note templates, compiled into the library as embedded resources and loaded through `EmbeddedNoteTemplate.cs`. They are LF-only (enforced by `.gitattributes`) and the loader strips the trailing newline so rendered notes are byte-identical across platforms
 - **PrintLog.SlicerSettings/CuraSettingDto.cs**: Main DTO sent to the API

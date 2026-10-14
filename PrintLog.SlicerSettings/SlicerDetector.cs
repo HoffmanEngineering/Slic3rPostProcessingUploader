@@ -20,7 +20,7 @@ namespace PrintLog.SlicerSettings
     /// <summary>
     /// The slicer <see cref="SlicerDetector.Detect"/> settled on, and the means to parse its G-code.
     /// </summary>
-    public sealed class DetectedSlicer
+    internal sealed class DetectedSlicer
     {
         private readonly SlicerRegistration registration;
 
@@ -60,7 +60,7 @@ namespace PrintLog.SlicerSettings
     /// <summary>
     /// Works out which slicer wrote a piece of G-code.
     /// </summary>
-    public static class SlicerDetector
+    internal static class SlicerDetector
     {
         /// <summary>
         /// Registry order matters: it is the detection order, and the heuristic fallback resolves ties in favour of

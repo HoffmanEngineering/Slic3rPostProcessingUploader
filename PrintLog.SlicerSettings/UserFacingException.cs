@@ -4,7 +4,7 @@ namespace PrintLog.SlicerSettings;
 /// An error the user can act on. The message is shown as-is; the hint tells them what to do about it.
 /// Anything else that escapes to the top level is treated as unexpected and reported generically.
 /// </summary>
-public class UserFacingException : Exception
+internal class UserFacingException : Exception
 {
     public string? Hint { get; }
 

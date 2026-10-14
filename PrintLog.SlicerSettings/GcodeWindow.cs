@@ -7,7 +7,7 @@ namespace PrintLog.SlicerSettings
     /// of the file, with the bulk of the file being toolpath commands in between. For large files, only the head and tail
     /// need to be searched, which keeps parse time independent of file size.
     /// </summary>
-    public static class GcodeWindow
+    internal static class GcodeWindow
     {
         /// <summary>
         /// Size of the head and of the tail that are kept, in chars (for strings) or bytes (for files). Must comfortably

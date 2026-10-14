@@ -36,6 +36,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The public surface is SlicerConfigParser and its result types, which is what the API uses. The uploader uses
+         the rest (whole-file parsing, binary G-code, the wire DTO) as internals, so none of it is a package promise. -->
+    <InternalsVisibleTo Include="Slic3rPostProcessingUploader" />
     <InternalsVisibleTo Include="PrintLog.SlicerSettings.Tests" />
     <!-- The uploader's ParserFactoryTests assert which concrete parser the console adapter picked. -->
     <InternalsVisibleTo Include="Slic3rPostProcessingUploaderUnitTests" />

@@ -8,13 +8,20 @@ namespace Slic3rPostProcessingUploader.Services
     /// </summary>
     internal class ParserFactory
     {
-        public static IGcodeParser GetParser(ArgumentParser arguments, TelemetryService telemetry, ConsoleOutput output, string gcode)
+        public static IGcodeParser GetParser(ArgumentParser arguments, TelemetryService telemetry, ConsoleOutput output, string gcode) =>
+            GetParser(arguments, telemetry.TrackEvent, output, gcode);
+
+        /// <summary>
+        /// <paramref name="trackEvent"/> receives what would go to <see cref="TelemetryService.TrackEvent"/>, so tests can
+        /// pin the event names dashboards depend on.
+        /// </summary>
+        internal static IGcodeParser GetParser(ArgumentParser arguments, Action<string, Dictionary<string, object>?> trackEvent, ConsoleOutput output, string gcode)
         {
-            SendTemplateMetrics(arguments, telemetry);
+            SendTemplateMetrics(arguments, trackEvent);
 
             var slicer = SlicerDetector.Detect(
                 gcode,
-                (name, percentMatch) => telemetry.TrackEvent($"{name}PercentMatch", new Dictionary<string, object> { { "PercentMatch", percentMatch } }));
+                (name, percentMatch) => trackEvent($"{name}PercentMatch", new Dictionary<string, object> { { "PercentMatch", percentMatch } }));
 
             if (!slicer.IsRecognized)
             {
@@ -49,20 +56,20 @@ namespace Slic3rPostProcessingUploader.Services
             return slicer.CreateParser(template.getNoteTemplate());
         }
 
-        private static void SendTemplateMetrics(ArgumentParser arguments, TelemetryService telemetry)
+        private static void SendTemplateMetrics(ArgumentParser arguments, Action<string, Dictionary<string, object>?> trackEvent)
         {
             // Track the template used as an event
             if (arguments.UseDefaultNoteTemplate)
             {
-                telemetry.TrackEvent("Template", new Dictionary<string, object> { { "Template", "Default" } });
+                trackEvent("Template", new Dictionary<string, object> { { "Template", "Default" } });
             }
             else if (arguments.UseFullNoteTemplate)
             {
-                telemetry.TrackEvent("Template", new Dictionary<string, object> { { "Template", "Full" } });
+                trackEvent("Template", new Dictionary<string, object> { { "Template", "Full" } });
             }
             else
             {
-                telemetry.TrackEvent("Template", new Dictionary<string, object> { { "Template", "Custom" } });
+                trackEvent("Template", new Dictionary<string, object> { { "Template", "Custom" } });
             }
         }
     }

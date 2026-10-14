@@ -1,16 +1,19 @@
-﻿namespace PrintLog.SlicerSettings
+namespace PrintLog.SlicerSettings
 {
-    public class MaterialDensityGramsPerCubicCm
+    internal sealed class MaterialDensityGramsPerCubicCm
     {
-        public double PLA { get; set; }
-        public double ABS { get; set; }
-        public double PETG { get; set; }
-        public double Nylon { get; set; }
+        public double PLA { get; init; }
+        public double ABS { get; init; }
+        public double PETG { get; init; }
+        public double Nylon { get; init; }
     }
 
-    public static class MaterialDensities
+    /// <summary>
+    /// Last-resort densities for G-code that carries no <c>filament_density</c>.
+    /// </summary>
+    internal static class MaterialDensities
     {
-        public static MaterialDensityGramsPerCubicCm Materials = new MaterialDensityGramsPerCubicCm
+        public static readonly MaterialDensityGramsPerCubicCm Materials = new()
         {
             PLA = 1.24,
             ABS = 1.04,
