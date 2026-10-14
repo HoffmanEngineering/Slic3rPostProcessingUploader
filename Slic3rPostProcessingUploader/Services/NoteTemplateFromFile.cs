@@ -1,4 +1,5 @@
-﻿namespace Slic3rPostProcessingUploader.Services
+﻿using PrintLog.SlicerSettings;
+namespace Slic3rPostProcessingUploader.Services
 {
     internal class NoteTemplateFromFile : INoteTemplate
     {

@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <WarningsAsErrors>nullable</WarningsAsErrors>
+    <!-- The uploader is published with Native AOT, so everything here must stay trim- and AOT-safe. This turns on
+         the analyzers that say so at build time rather than at publish time. -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Internal members carry XML comments too; only the public surface needs them, so missing ones are not errors. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- The publish-library workflow passes -p:Version=<tag without the lib-v>. The placeholder marks any
+         package that was not built from a tag. -->
+    <Version>0.0.0-dev</Version>
+    <PackageId>PrintLog.SlicerSettings</PackageId>
+    <Authors>Christopher Hoffman</Authors>
+    <Company>Hoffman Engineering</Company>
+    <Product>3D Print Log</Product>
+    <Description>Parses the settings OrcaSlicer, PrusaSlicer, Bambu Studio, FLSun Slicer and Anycubic Slicer Next write into G-code, and renders the 3D Print Log note templates from them.</Description>
+    <Copyright>Copyright (c) Hoffman Engineering</Copyright>
+    <PackageTags>gcode;3d-printing;orcaslicer;prusaslicer;bambustudio;slicer</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/HoffmanEngineering/Slic3rPostProcessingUploader</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/HoffmanEngineering/Slic3rPostProcessingUploader</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- SourceLink is built into the SDK for GitHub; these make the package debuggable without a symbols package. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>embedded</DebugType>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PrintLog.SlicerSettings.Tests" />
+    <!-- The uploader's ParserFactoryTests assert which concrete parser the console adapter picked. -->
+    <InternalsVisibleTo Include="Slic3rPostProcessingUploaderUnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Built-in note templates, loaded by EmbeddedNoteTemplate. LogicalName is spelled out so the resource name is
+         the same on every OS (%(RecursiveDir) would use a backslash on Windows). -->
+    <EmbeddedResource Include="Templates/OrcaSlicer/default.txt" LogicalName="Templates/OrcaSlicer/default.txt" />
+    <EmbeddedResource Include="Templates/OrcaSlicer/full.txt" LogicalName="Templates/OrcaSlicer/full.txt" />
+    <EmbeddedResource Include="Templates/PrusaSlicer/default.txt" LogicalName="Templates/PrusaSlicer/default.txt" />
+    <EmbeddedResource Include="Templates/PrusaSlicer/full.txt" LogicalName="Templates/PrusaSlicer/full.txt" />
+    <EmbeddedResource Include="Templates/BambuStudio/default.txt" LogicalName="Templates/BambuStudio/default.txt" />
+    <EmbeddedResource Include="Templates/BambuStudio/full.txt" LogicalName="Templates/BambuStudio/full.txt" />
+    <EmbeddedResource Include="Templates/FLSunSlicer/default.txt" LogicalName="Templates/FLSunSlicer/default.txt" />
+    <EmbeddedResource Include="Templates/FLSunSlicer/full.txt" LogicalName="Templates/FLSunSlicer/full.txt" />
+    <EmbeddedResource Include="Templates/AnycubicSlicerNext/default.txt" LogicalName="Templates/AnycubicSlicerNext/default.txt" />
+    <EmbeddedResource Include="Templates/AnycubicSlicerNext/full.txt" LogicalName="Templates/AnycubicSlicerNext/full.txt" />
+  </ItemGroup>
+
+</Project>

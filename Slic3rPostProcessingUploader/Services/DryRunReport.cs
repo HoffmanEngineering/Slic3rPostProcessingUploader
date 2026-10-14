@@ -1,4 +1,4 @@
-using Slic3rPostProcessingUploader.Services.Parsers;
+using PrintLog.SlicerSettings;
 using System.Globalization;
 using System.Text;
 

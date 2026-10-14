@@ -59,6 +59,10 @@ jobs:
         run: dotnet build --configuration Release --no-restore
       - name: Test
         run: dotnet test --no-restore --verbosity normal
+      # Catches a broken package (metadata, packed README, embedded templates) before a lib-v* tag finds it.
+      - name: Pack library
+        if: runner.os == 'Linux'
+        run: dotnet pack PrintLog.SlicerSettings/PrintLog.SlicerSettings.csproj --configuration Release --no-build --output dist
       - name: Publish
         run: dotnet publish Slic3rPostProcessingUploader/Slic3rPostProcessingUploader.csproj --configuration Release --runtime ${{ matrix.platform.rid }}
       - name: Upload Artifact

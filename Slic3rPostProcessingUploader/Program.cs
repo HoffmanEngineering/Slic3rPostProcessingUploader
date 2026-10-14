@@ -1,6 +1,6 @@
 using Slic3rPostProcessingUploader.Services;
 using Slic3rPostProcessingUploader.Services.Installer;
-using Slic3rPostProcessingUploader.Services.Parsers;
+using PrintLog.SlicerSettings;
 using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
