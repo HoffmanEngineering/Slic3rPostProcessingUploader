@@ -19,11 +19,11 @@
         "AmountMg": null,
         "LengthInM": null,
         "VolumeMl": null,
-        "EstimatedAmountMg": null,
+        "EstimatedAmountMg": 1660.0,
         "EstimatedLengthInM": 0.557,
         "EstimatedVolumeMl": null,
         "Source": "Length",
-        "EstimatedSource": "Length",
+        "EstimatedSource": "Weight",
         "Notes": "Slot 1 · Red (#E72F1D) · PLA"
       },
       {
@@ -35,11 +35,11 @@
         "AmountMg": null,
         "LengthInM": null,
         "VolumeMl": null,
-        "EstimatedAmountMg": null,
+        "EstimatedAmountMg": 1610.0,
         "EstimatedLengthInM": 0.527,
         "EstimatedVolumeMl": null,
         "Source": "Length",
-        "EstimatedSource": "Length",
+        "EstimatedSource": "Weight",
         "Notes": "Slot 2 · White (#FFFFFF) · PETG"
       },
       {
@@ -51,11 +51,11 @@
         "AmountMg": null,
         "LengthInM": null,
         "VolumeMl": null,
-        "EstimatedAmountMg": null,
+        "EstimatedAmountMg": 830.0,
         "EstimatedLengthInM": 0.279,
         "EstimatedVolumeMl": null,
         "Source": "Length",
-        "EstimatedSource": "Length",
+        "EstimatedSource": "Weight",
         "Notes": "Slot 3 · Blue (#1F77B4) · PLA"
       },
       {
@@ -67,11 +67,11 @@
         "AmountMg": null,
         "LengthInM": null,
         "VolumeMl": null,
-        "EstimatedAmountMg": null,
+        "EstimatedAmountMg": 290.0,
         "EstimatedLengthInM": 0.094,
         "EstimatedVolumeMl": null,
         "Source": "Length",
-        "EstimatedSource": "Length",
+        "EstimatedSource": "Weight",
         "Notes": "Slot 4 · Green (#2CA02C) · PETG"
       },
       {
@@ -83,11 +83,11 @@
         "AmountMg": null,
         "LengthInM": null,
         "VolumeMl": null,
-        "EstimatedAmountMg": null,
+        "EstimatedAmountMg": 240.0,
         "EstimatedLengthInM": 0.079,
         "EstimatedVolumeMl": null,
         "Source": "Length",
-        "EstimatedSource": "Length",
+        "EstimatedSource": "Weight",
         "Notes": "Slot 5 · Yellow (#FFC800) · PLA"
       }
     ]

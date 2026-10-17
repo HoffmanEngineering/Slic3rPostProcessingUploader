@@ -19,11 +19,11 @@
         "AmountMg": null,
         "LengthInM": null,
         "VolumeMl": null,
-        "EstimatedAmountMg": null,
+        "EstimatedAmountMg": 203110.0,
         "EstimatedLengthInM": 68.099,
         "EstimatedVolumeMl": null,
         "Source": "Length",
-        "EstimatedSource": "Length",
+        "EstimatedSource": "Weight",
         "Notes": "Slot 1 · Orange (#FF8040) · PLA"
       }
     ]

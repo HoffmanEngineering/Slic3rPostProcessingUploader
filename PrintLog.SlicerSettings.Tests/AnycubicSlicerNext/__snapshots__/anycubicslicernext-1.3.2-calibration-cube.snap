@@ -19,11 +19,11 @@
         "AmountMg": null,
         "LengthInM": null,
         "VolumeMl": null,
-        "EstimatedAmountMg": null,
+        "EstimatedAmountMg": 3530.0,
         "EstimatedLengthInM": 1.184,
         "EstimatedVolumeMl": null,
         "Source": "Length",
-        "EstimatedSource": "Length",
+        "EstimatedSource": "Weight",
         "Notes": "Slot 1 · Blue (#69A4FF) · PLA"
       }
     ]

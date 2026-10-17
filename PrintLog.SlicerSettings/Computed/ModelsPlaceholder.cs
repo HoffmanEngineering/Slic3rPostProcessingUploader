@@ -67,21 +67,64 @@ namespace PrintLog.SlicerSettings.Computed
         }
 
         /// <summary>
-        /// Orca's outer_wall_line_width may be a percentage of the nozzle diameter ("105%"); only an absolute value is
-        /// usable, so the generic line_width is the fallback and, failing that, the centreline box is shown as-is.
+        /// The outer wall's line width the way Orca resolves it (PrintRegion::flow, Flow::new_from_config_width):
+        /// outer_wall_line_width, or line_width when that is 0; a percentage is of the (first) nozzle diameter, as Orca
+        /// 2.5's system profiles write it ("100%"); and when both are 0, Orca's automatic width, 1.125 × nozzle diameter.
+        /// Without a nozzle diameter a percentage cannot be resolved, so an absolute line_width is the fallback and,
+        /// failing that, the centreline box is shown as-is.
         /// </summary>
         private static double LineWidth(GcodeSettings settings)
         {
-            foreach (var key in new[] { "outer_wall_line_width", "line_width" })
+            var nozzle = FirstNumber(settings.Get("nozzle_diameter"));
+            var width = Resolve(settings.Get("outer_wall_line_width"), nozzle);
+            if (width is null or 0)
             {
-                if (double.TryParse(settings.Get(key), NumberStyles.Float, CultureInfo.InvariantCulture, out var width)
-                    && double.IsFinite(width) && width > 0)
-                {
-                    return width;
-                }
+                width = Resolve(settings.Get("line_width"), nozzle);
             }
 
-            return 0;
+            if (width == 0)
+            {
+                width = nozzle is > 0 ? 1.125 * nozzle.Value : null;
+            }
+
+            return width is > 0 && double.IsFinite(width.Value) ? width.Value : 0;
+        }
+
+        /// <summary>
+        /// A "mm or %" value: the width in mm, 0 when it is 0 (meaning "use the default"), or null when it is missing or
+        /// cannot be resolved.
+        /// </summary>
+        private static double? Resolve(string value, double? nozzle)
+        {
+            value = value.Trim();
+            bool percent = value.EndsWith('%');
+            var number = FirstNumber(percent ? value[..^1] : value);
+            if (number is null or < 0)
+            {
+                return null;
+            }
+
+            if (number == 0)
+            {
+                return 0;
+            }
+
+            if (!percent)
+            {
+                return number;
+            }
+
+            return nozzle is > 0 ? number.Value / 100 * nozzle.Value : null;
+        }
+
+        /// <summary>The first entry of a value such as "0.4" or "0.4,0.6", or null when it is not a finite number.</summary>
+        private static double? FirstNumber(string value)
+        {
+            int comma = value.IndexOf(',');
+            var first = (comma >= 0 ? value[..comma] : value).Trim();
+            return double.TryParse(first, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) && double.IsFinite(number)
+                ? number
+                : null;
         }
 
         private static double Round(double value) => Math.Round(value, 1, MidpointRounding.AwayFromZero);
