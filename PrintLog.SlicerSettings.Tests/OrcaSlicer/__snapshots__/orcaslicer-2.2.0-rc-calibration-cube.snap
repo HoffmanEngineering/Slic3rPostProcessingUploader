@@ -23,7 +23,7 @@
         "EstimatedLengthInM": 1.52,
         "EstimatedVolumeMl": null,
         "Source": "Length",
-        "EstimatedSource": "Length",
+        "EstimatedSource": "Weight",
         "Notes": "Slot 1 · Teal (#26A69A) · PLA"
       }
     ]

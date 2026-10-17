@@ -428,39 +428,49 @@ namespace PrintLog.SlicerSettings
             var densities = ParseNumberList(settings.Get("filament_density"));
 
             return GetFilamentSlots(settings)
-                .Select(slot => new PrintFilamentSummaryDto
+                .Select(slot =>
                 {
-                    EstimatedSource = PrintFilamentSourceMeasurement.Length,
-                    EstimatedLengthInM = Math.Round(slot.LengthMm / 1000, 3),
-                    EstimatedAmountMg = EstimateSlotMg(slot, grams, diameters, densities),
-                    Id = null,
-                    Notes = slot.Description,
-                    Source = PrintFilamentSourceMeasurement.Length,
-                    Filament = new FilamentSummary
+                    double? slicerMg = ToWholeMg(grams.ElementAtOrDefault(slot.SlotIndex) * 1000);
+                    return new PrintFilamentSummaryDto
                     {
-                        DisplayName = "Other",
-                        Id = "00000000-0000-0000-0000-000000000000"
-                    }
+                        // The new-print form shows the estimate in this unit. The slicer's own grams are what its
+                        // preview showed, so they lead when it wrote them; a weight we work out ourselves is only the
+                        // length restated, so the length leads then and the API converts it with the chosen material.
+                        EstimatedSource = slicerMg is null ? PrintFilamentSourceMeasurement.Length : PrintFilamentSourceMeasurement.Weight,
+                        EstimatedLengthInM = Math.Round(slot.LengthMm / 1000, 3),
+                        EstimatedAmountMg = slicerMg ?? EstimateSlotMg(slot, diameters, densities),
+                        Id = null,
+                        Notes = slot.Description,
+                        // Nothing has been measured yet; this only sets the unit of the empty actual-usage field.
+                        Source = PrintFilamentSourceMeasurement.Length,
+                        Filament = new FilamentSummary
+                        {
+                            DisplayName = "Other",
+                            Id = "00000000-0000-0000-0000-000000000000"
+                        }
+                    };
                 })
                 .ToList();
         }
 
         /// <summary>
-        /// A slot's weight in whole milligrams: the slicer's own per-slot grams (what its preview shows) when it wrote
-        /// them, else the slot's length × its filament's cross-section × its density, else null. A list shorter than the
-        /// slot index falls back to its first entry, as single-value diameter and density lines are common.
+        /// A slot's weight in whole milligrams worked out from its length × its filament's cross-section × its density,
+        /// for when the slicer wrote no per-slot grams; null when either is missing. A list shorter than the slot index
+        /// falls back to its first entry, as single-value diameter and density lines are common.
         /// </summary>
-        private double? EstimateSlotMg(FilamentEstimate slot, List<double> grams, List<double> diameters, List<double> densities)
+        private double? EstimateSlotMg(FilamentEstimate slot, List<double> diameters, List<double> densities)
         {
-            double mg = grams.ElementAtOrDefault(slot.SlotIndex) * 1000;
-            if (!(mg > 0))
-            {
-                double diameter = diameters.ElementAtOrDefault(slot.SlotIndex) is > 0 and var d ? d : diameters.FirstOrDefault();
-                double density = densities.ElementAtOrDefault(slot.SlotIndex) is > 0 and var g ? g : densities.FirstOrDefault();
-                mg = diameter > 0 && density > 0 ? CalculateWeightInMg(density, slot.LengthMm, diameter) : 0;
-            }
+            double diameter = diameters.ElementAtOrDefault(slot.SlotIndex) is > 0 and var d ? d : diameters.FirstOrDefault();
+            double density = densities.ElementAtOrDefault(slot.SlotIndex) is > 0 and var g ? g : densities.FirstOrDefault();
+            return diameter > 0 && density > 0 ? ToWholeMg(CalculateWeightInMg(density, slot.LengthMm, diameter)) : null;
+        }
 
-            // Untrusted input: out-of-range values are left out rather than sent as Infinity.
+        /// <summary>
+        /// Whole milligrams, or null when the value is not positive. Untrusted input: out-of-range values are left out
+        /// rather than sent as Infinity.
+        /// </summary>
+        private static double? ToWholeMg(double mg)
+        {
             return mg is > 0 and <= int.MaxValue ? Math.Round(mg) : null;
         }
 

@@ -23,7 +23,7 @@
         "EstimatedLengthInM": 2.106,
         "EstimatedVolumeMl": null,
         "Source": "Length",
-        "EstimatedSource": "Length",
+        "EstimatedSource": "Weight",
         "Notes": "Slot 1 · Orange (#FF8000) · PLA"
       }
     ]

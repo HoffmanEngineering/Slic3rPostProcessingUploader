@@ -23,7 +23,7 @@
         "EstimatedLengthInM": 1.282,
         "EstimatedVolumeMl": null,
         "Source": "Length",
-        "EstimatedSource": "Length",
+        "EstimatedSource": "Weight",
         "Notes": "Slot 1 · Red (#E72F1D) · PLA"
       }
     ]
