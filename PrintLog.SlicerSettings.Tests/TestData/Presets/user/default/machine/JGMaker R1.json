@@ -1,0 +1,8 @@
+{
+    "from": "User",
+    "inherits": "MyMarlin 0.4 nozzle",
+    "name": "JGMaker R1",
+    "printable_area": ["0x0", "220x0", "220x220", "0x220"],
+    "printer_settings_id": "JGMaker R1",
+    "version": "2.2.0.4"
+}

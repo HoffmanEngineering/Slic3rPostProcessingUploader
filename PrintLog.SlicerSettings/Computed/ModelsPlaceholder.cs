@@ -25,35 +25,54 @@ namespace PrintLog.SlicerSettings.Computed
 
         private static string Render(ComputedContext context)
         {
-            IReadOnlyList<ObjectBounds> bounds;
-            try
+            // Bounds a client measured on the slicing machine replace the scan; the server only has a windowed copy.
+            IReadOnlyList<ModelBounds> bounds;
+            if (context.Models != null)
             {
-                using var stream = context.OpenFullGcode();
-                bounds = ObjectBoundsScanner.Scan(stream, context.DebugLog);
+                bounds = context.Models;
             }
-            catch (Exception e)
+            else
             {
-                context.DebugLog($"Could not measure the objects in the G-code: {e.Message}");
-                return string.Empty;
-            }
-
-            if (bounds.Count == 0)
-            {
-                return string.Empty;
+                try
+                {
+                    using var stream = context.OpenFullGcode();
+                    bounds = ObjectBoundsScanner.Scan(stream, context.DebugLog)
+                        .Select(b => new ModelBounds(b.Name, b.MinX, b.MaxX, b.MinY, b.MaxY, b.MaxZ))
+                        .ToList();
+                }
+                catch (Exception e)
+                {
+                    context.DebugLog($"Could not measure the objects in the G-code: {e.Message}");
+                    return string.Empty;
+                }
             }
 
             double lineWidth = LineWidth(context.Settings);
+
+            // Grouped through a dictionary so the work stays linear in the number of objects (supplied bounds are
+            // untrusted input); the list keeps the order of first appearance.
             var groups = new List<Group>();
+            var groupsBySize = new Dictionary<Size, Group>();
             foreach (var box in bounds)
             {
-                var size = new Size(box.Name, Round(box.MaxX - box.MinX + lineWidth), Round(box.MaxY - box.MinY + lineWidth), Round(box.MaxZ));
-                var group = groups.FirstOrDefault(g => g.Size == size);
-                if (group == null)
+                if (box == null)
                 {
-                    groups.Add(group = new Group(size));
+                    continue;
+                }
+
+                var size = new Size(box.Name ?? string.Empty, Round(box.MaxX - box.MinX + lineWidth), Round(box.MaxY - box.MinY + lineWidth), Round(box.MaxZ));
+                if (!groupsBySize.TryGetValue(size, out var group))
+                {
+                    groupsBySize[size] = group = new Group(size);
+                    groups.Add(group);
                 }
 
                 group.Count++;
+            }
+
+            if (groups.Count == 0)
+            {
+                return string.Empty;
             }
 
             int nameWidth = groups.Max(g => g.Size.Name.Length);

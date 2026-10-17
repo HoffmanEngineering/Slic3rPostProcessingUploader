@@ -60,4 +60,24 @@ public sealed class PrintMetadataTests
 
         Assert.AreEqual("https://www.3dprintlog.com/prints/new/cura?cura_version=2.8.1&plugin_version=1.1.2.0&settingId=abc-123", url);
     }
+
+    // The API names prints from a plugin upload with SlicerGcodeParser's OutputName; it must agree with the uploader.
+    [TestMethod]
+    [DataRow("benchy_final.gcode")]
+    [DataRow("3DBenchy_PLA_1h2m.gcode")]
+    [DataRow("MyPart_gcode.gcode")]
+    [DataRow("cube.bgcode")]
+    [DataRow("A Very Long Name With Many Words That Goes On And On Past The One Hundred Character Limit Of Titles.gcode")]
+    public void Apply_MatchesTheLibrarysOutputName(string fileName)
+    {
+        string outputName = Path.Combine(Path.GetTempPath(), "Prints", fileName);
+        var dto = ParsedDto();
+
+        PrintMetadata.Apply(dto, InputFile, outputName, pluginVersion: "1.1.2.0");
+        var settings = System.Text.Json.Nodes.JsonNode.Parse(
+            SlicerGcodeParser.Parse("", new SlicerGcodeOptions("default", [], []) { OutputName = outputName }).SettingsJson)!;
+
+        Assert.AreEqual(dto.settings.file_name, (string?)settings["file_name"]);
+        Assert.AreEqual(dto.settings.print_name, (string?)settings["print_name"]);
+    }
 }

@@ -269,7 +269,7 @@ public sealed class SlicerConfigParserTests
     }
 
     [TestMethod]
-    public void PublicSurface_IsOnlyTheEntryPointAndItsResult()
+    public void PublicSurface_IsOnlyTheEntryPointsAndTheirInputsAndResults()
     {
         // nuget.org versions are immutable: anything public here is a promise to the API. Widen it deliberately.
         var exported = typeof(SlicerConfigParser).Assembly.GetExportedTypes().Select(t => t.FullName).Order(StringComparer.Ordinal).ToList();
@@ -278,8 +278,13 @@ public sealed class SlicerConfigParserTests
             new[]
             {
                 "PrintLog.SlicerSettings.FilamentEstimate",
+                "PrintLog.SlicerSettings.ModelBounds",
                 "PrintLog.SlicerSettings.SlicerConfigParser",
                 "PrintLog.SlicerSettings.SlicerConfigResult",
+                "PrintLog.SlicerSettings.SlicerGcodeOptions",
+                "PrintLog.SlicerSettings.SlicerGcodeParser",
+                "PrintLog.SlicerSettings.SlicerGcodeResult",
+                "PrintLog.SlicerSettings.UserPresetFile",
             },
             exported,
             string.Join(", ", exported));
