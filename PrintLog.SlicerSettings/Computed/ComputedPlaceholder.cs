@@ -18,5 +18,7 @@ namespace PrintLog.SlicerSettings.Computed
         public Func<Stream> OpenFullGcode => options.OpenFullGcode;
         public Action<string> DebugLog => options.DebugLog;
         public Func<IEnumerable<string>> ConfigRoots => options.ConfigRoots;
+        public IReadOnlyList<ModelBounds>? Models => options.Models;
+        public IReadOnlyList<UserPresetFile>? UserPresets => options.UserPresets;
     }
 }

@@ -1,0 +1,8 @@
+{
+    "from": "User",
+    "inherits": "0.10mm FAST DETAIL @MK4S 0.4",
+    "name": "0.10mm FAST DETAIL @MK4S 0.4 - 3DPrintLog",
+    "post_process": ["\"C:\\Program Files\\Slic3rPostProcessingUploader\\Slic3rPostProcessingUploader.exe\" --default"],
+    "print_settings_id": "0.10mm FAST DETAIL @MK4S 0.4 - 3DPrintLog",
+    "version": "2.4.0.0"
+}
