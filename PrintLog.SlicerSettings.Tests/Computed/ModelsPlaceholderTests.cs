@@ -60,11 +60,48 @@ namespace PrintLog.SlicerSettings.Tests.Computed
         }
 
         [TestMethod]
-        public void ShouldFallBackToLineWidthWhenOuterWallLineWidthIsNotNumeric()
+        public void ShouldResolveAPercentageOuterWallLineWidthOverTheNozzleDiameter()
+        {
+            // Orca 2.5's system profiles write "100%"; the percentage is of the nozzle diameter (PrintConfig.cpp,
+            // ratio_over = "nozzle_diameter"), so 105% of 0.4 mm is 0.42 mm.
+            var gcode = "; outer_wall_line_width = 105%\n; line_width = 0.5\n; nozzle_diameter = 0.4,0.6\n;Z:5\n" + Instance("Cube", 0, Box(10, 10, 20.98, 20.98));
+
+            Assert.AreEqual("Models:\n  Cube  ×1   21.4 × 21.4 × 5.0 mm\n", Render(gcode));
+        }
+
+        [TestMethod]
+        public void ShouldUseTheDefaultLineWidthWhenOuterWallLineWidthIsZero()
+        {
+            // 0 means "use line_width" (PrintRegion::flow), which may itself be a percentage.
+            var gcode = "; outer_wall_line_width = 0\n; line_width = 110%\n; nozzle_diameter = 0.4\n;Z:5\n" + Instance("Cube", 0, Box(10, 10, 20, 20));
+
+            Assert.AreEqual("Models:\n  Cube  ×1   20.4 × 20.4 × 5.0 mm\n", Render(gcode));
+        }
+
+        [TestMethod]
+        public void ShouldUseOrcasAutomaticWidthWhenBothLineWidthsAreZero()
+        {
+            // Flow::auto_extrusion_width: 1.125 × nozzle diameter for an outer wall, 0.45 mm on a 0.4 mm nozzle.
+            var gcode = "; outer_wall_line_width = 0\n; line_width = 0\n; nozzle_diameter = 0.4\n;Z:5\n" + Instance("Cube", 0, Box(10, 10, 20.05, 20.05));
+
+            Assert.AreEqual("Models:\n  Cube  ×1   20.5 × 20.5 × 5.0 mm\n", Render(gcode));
+        }
+
+        [TestMethod]
+        public void ShouldFallBackToAnAbsoluteLineWidthWhenAPercentageHasNoNozzleDiameter()
         {
             var gcode = "; outer_wall_line_width = 105%\n; line_width = 0.5\n;Z:5\n" + Instance("Cube", 0, Box(10, 10, 20, 20));
 
             Assert.AreEqual("Models:\n  Cube  ×1   20.5 × 20.5 × 5.0 mm\n", Render(gcode));
+        }
+
+        [TestMethod]
+        public void ShouldDescribeTheOrca25CubeAsTwentyMillimetersSquare()
+        {
+            // Orca 2.5 writes outer_wall_line_width = 100% and line_width = 110%; the outer wall is 0.40 mm.
+            var gcode = TestData.Load(Path.Combine("OrcaSlicer", "orcaslicer-2.5.0-alpha-cube-20mm.gcode"));
+
+            Assert.AreEqual("Models:\n  cube.stl  ×1   20.0 × 20.0 × 20.0 mm\n", Render(gcode));
         }
 
         [TestMethod]
