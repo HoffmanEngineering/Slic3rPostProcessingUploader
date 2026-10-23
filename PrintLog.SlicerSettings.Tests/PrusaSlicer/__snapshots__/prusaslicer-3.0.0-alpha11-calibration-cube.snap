@@ -19,11 +19,11 @@
         "AmountMg": null,
         "LengthInM": null,
         "VolumeMl": null,
-        "EstimatedAmountMg": null,
+        "EstimatedAmountMg": 3850.0,
         "EstimatedLengthInM": 1.292,
         "EstimatedVolumeMl": null,
         "Source": "Length",
-        "EstimatedSource": "Length",
+        "EstimatedSource": "Weight",
         "Notes": "Slot 1 · PLA"
       }
     ]

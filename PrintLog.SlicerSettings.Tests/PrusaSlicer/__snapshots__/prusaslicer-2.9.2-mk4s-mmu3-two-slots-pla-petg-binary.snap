@@ -19,11 +19,11 @@
         "AmountMg": null,
         "LengthInM": null,
         "VolumeMl": null,
-        "EstimatedAmountMg": null,
+        "EstimatedAmountMg": 8990.0,
         "EstimatedLengthInM": 3.013,
         "EstimatedVolumeMl": null,
         "Source": "Length",
-        "EstimatedSource": "Length",
+        "EstimatedSource": "Weight",
         "Notes": "Slot 1 · Red (#E72F1D) · PLA"
       },
       {
@@ -35,11 +35,11 @@
         "AmountMg": null,
         "LengthInM": null,
         "VolumeMl": null,
-        "EstimatedAmountMg": null,
+        "EstimatedAmountMg": 11130.0,
         "EstimatedLengthInM": 3.643,
         "EstimatedVolumeMl": null,
         "Source": "Length",
-        "EstimatedSource": "Length",
+        "EstimatedSource": "Weight",
         "Notes": "Slot 2 · Blue (#1F77B4) · PETG"
       }
     ]
