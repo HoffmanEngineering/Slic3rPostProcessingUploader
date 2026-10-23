@@ -60,6 +60,42 @@ Anycubic Slicer Next apart from OrcaSlicer itself.
   unsaved changes, because that needs the user's preset files on the slicing machine.
 - `{{models}}` is always empty: object sizes are measured from the toolpaths.
 
+## Parsing an uploaded G-code file
+
+A slicer plugin that has the whole file can send it (or its first and last 2,000,000 characters), plus what only the
+slicing machine has, and get back exactly the `settings` JSON the uploader would post for that file:
+
+```csharp
+var options = new SlicerGcodeOptions(
+    Template: "default",                          // or "full"; anything else throws ArgumentException
+    Models: [new ModelBounds("3DBenchy.stl", 100.1, 159.6, 95.2, 125.7, 48.0)],
+    UserPresets: [new UserPresetFile("process", "0.20mm Standard @MyPrinter - 3DPrintLog", presetJson)])
+{
+    OutputName = @"C:\Prints\benchy_final.gcode", // optional: sets file_name and print_name
+    DebugLog = message => logger.LogDebug(message),
+};
+
+SlicerGcodeResult result = SlicerGcodeParser.Parse(gcode, options);
+
+result.Slicer;        // "OrcaSlicer"
+result.Version;       // "2.4.0"
+result.IsRecognized;  // true when the header's slicer marker identified it
+result.SettingsJson;  // {"note": ..., "print_name": ..., "estimated_print_time_seconds": ..., "material_used_mg": ...,
+                      //  "snapshot": ..., "file_name": ..., "filamentUsage": [...]}
+```
+
+- `Models` are the raw extrusion centerline boxes per object instance (what the uploader's toolpath scan measures);
+  the note adds the outer-wall line width. Empty means no models section. At most 1,000 are used, and names are cut
+  to 256 characters.
+- `UserPresets` are the user's own preset files (`user/<account>/<kind>/<name>.json`). They split
+  `{{modified_settings}}` into saved and unsaved changes exactly as the uploader does with the files on disk; when a
+  user preset the G-code names has no file, or two, the section is the flat list.
+- `OutputName` gives `file_name` (the last path segment, `/` or `\`) and `print_name` (`Benchy Final`); without it
+  both are null.
+- The thumbnail is extracted. Binary G-code is not decoded: send text.
+- It never reads the file system or the network, never throws for any text or list contents (a parse that fails
+  outright gives slicer and version `Unknown` and an empty note), and is linear in its input. Cap what you accept.
+
 ## Known gaps
 
 - **Snapmaker Orca** has no test fixture yet, so it has no detection of its own. Its files are parsed as OrcaSlicer, and

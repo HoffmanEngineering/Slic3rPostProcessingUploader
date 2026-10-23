@@ -46,6 +46,9 @@ namespace PrintLog.SlicerSettings
 
     [JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Serialization, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, WriteIndented = true)]
     [JsonSerializable(typeof(CuraSettingDto))]
+    // SlicerGcodeParser returns the settings object on its own, with the same options, so it is the "settings" the
+    // uploader posts.
+    [JsonSerializable(typeof(CuraSettings))]
     partial class JsonContext : JsonSerializerContext
     {
     }
