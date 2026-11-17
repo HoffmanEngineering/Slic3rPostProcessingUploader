@@ -242,7 +242,7 @@ public sealed class SlicerConfigParserTests
     [TestMethod]
     public void Parse_NullConfigBlock_Throws()
     {
-        Assert.ThrowsException<ArgumentNullException>(() => SlicerConfigParser.Parse(null!));
+        Assert.ThrowsExactly<ArgumentNullException>(() => SlicerConfigParser.Parse(null!));
     }
 
     // ~1 MB of hostile input each. Before the fix the first took 43 s: every unterminated "thumbnail begin" rescanned

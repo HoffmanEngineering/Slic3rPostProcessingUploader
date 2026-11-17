@@ -266,7 +266,7 @@ namespace PrintLog.SlicerSettings.Tests.Computed
         {
             using var stream = new ThrowingStream();
 
-            Assert.ThrowsException<IOException>(() => ObjectBoundsScanner.Scan(stream, _ => { }));
+            Assert.ThrowsExactly<IOException>(() => ObjectBoundsScanner.Scan(stream, _ => { }));
         }
 
         [TestMethod]

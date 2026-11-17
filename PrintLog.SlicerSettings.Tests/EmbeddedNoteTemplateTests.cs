@@ -36,7 +36,7 @@ namespace PrintLog.SlicerSettings.Tests
         [TestMethod]
         public void ThrowsWhenTemplateIsNotEmbedded()
         {
-            var ex = Assert.ThrowsException<InvalidOperationException>(() => new EmbeddedNoteTemplate("NoSuchSlicer", "default").getNoteTemplate());
+            var ex = Assert.ThrowsExactly<InvalidOperationException>(() => new EmbeddedNoteTemplate("NoSuchSlicer", "default").getNoteTemplate());
 
             StringAssert.Contains(ex.Message, "Templates/NoSuchSlicer/default.txt");
         }
