@@ -11,7 +11,7 @@ namespace Slic3rPostProcessingUploaderUnitTests.Services
         {
             var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".txt");
 
-            var ex = Assert.ThrowsException<UserFacingException>(() => new NoteTemplateFromFile(path).getNoteTemplate());
+            var ex = Assert.ThrowsExactly<UserFacingException>(() => new NoteTemplateFromFile(path).getNoteTemplate());
 
             StringAssert.Contains(ex.Message, path);
             Assert.IsNotNull(ex.Hint);

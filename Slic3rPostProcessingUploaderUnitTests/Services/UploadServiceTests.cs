@@ -42,7 +42,7 @@ public sealed class UploadServiceTests
 
     private static async Task<UserFacingException> AssertThrowsUserFacing(Task<string> upload, string expectedMessage, string expectedHint)
     {
-        var exception = await Assert.ThrowsExceptionAsync<UserFacingException>(() => upload);
+        var exception = await Assert.ThrowsExactlyAsync<UserFacingException>(() => upload);
         Assert.AreEqual(expectedMessage, exception.Message);
         Assert.AreEqual(expectedHint, exception.Hint);
         return exception;
