@@ -177,5 +177,42 @@ namespace PrintLog.SlicerSettings.Tests.Computed
 
             Assert.AreEqual(string.Empty, ModifiedSettingsPlaceholder.Instance.Render(new ComputedContext(settings, options)));
         }
+
+        // ---- Supplied preset files (SlicerGcodeParser: a client read them on the slicing machine) ----
+
+        private static string RenderWithSuppliedPresets(string gcode, params UserPresetFile[] presets)
+        {
+            var settings = GcodeSettings.Parse(gcode, "=");
+            var options = new ParseOptions(() => Stream.Null, _ => { }, () => throw new InvalidOperationException("must not read the disk"))
+            {
+                UserPresets = presets,
+            };
+            return ModifiedSettingsPlaceholder.Instance.Render(new ComputedContext(settings, options));
+        }
+
+        [TestMethod]
+        public void ShouldListOnlyTheUnsavedChangesWhenThePresetFilesAreSupplied()
+        {
+            var note = RenderWithSuppliedPresets(
+                TwoChangesGcode,
+                new UserPresetFile("process", "0.16 High Quality @U1 - 3DPrintLog", """{"sparse_infill_density": "8%"}"""),
+                new UserPresetFile("filament", "My PLA", """{"nozzle_temperature": ["215"]}"""));
+
+            Assert.AreEqual(
+                "Profile Changes:\n" +
+                "  Changed from \"0.16 High Quality @U1\":\n" +
+                "    Unsaved changes: wall_loops = 3\n",
+                note);
+        }
+
+        [TestMethod]
+        public void ShouldFallBackToTheFlatListWhenASuppliedPresetIsMissing()
+        {
+            var note = RenderWithSuppliedPresets(
+                TwoChangesGcode,
+                new UserPresetFile("process", "0.16 High Quality @U1 - 3DPrintLog", """{"sparse_infill_density": "8%"}"""));
+
+            Assert.AreEqual("Profile Changes:\n  Changed from \"0.16 High Quality @U1\": sparse_infill_density = 8%, wall_loops = 3, nozzle_temperature = 215\n", note);
+        }
     }
 }

@@ -110,5 +110,52 @@ namespace PrintLog.SlicerSettings.Tests.Computed
             // The trimmed fixture keeps four layers; centreline extents plus the 0.45 mm outer wall.
             Assert.AreEqual("Models:\n  3DBenchy.drc  ×16   55.6 × 30.9 × 48.0 mm\n", note);
         }
+
+        // ---- Supplied bounds (SlicerGcodeParser: a client measured the objects) ----
+
+        private static string RenderSupplied(string gcode, IReadOnlyList<ModelBounds> models)
+        {
+            var settings = GcodeSettings.Parse(gcode, "=");
+            var options = new ParseOptions(() => throw new InvalidOperationException("must not scan"), _ => { }) { Models = models };
+            return ModelsPlaceholder.Instance.Render(new ComputedContext(settings, options));
+        }
+
+        [TestMethod]
+        public void ShouldUseSuppliedBoundsInsteadOfScanning()
+        {
+            var note = RenderSupplied(Header, [new ModelBounds("Cube", 10, 30, 10, 30, 26.9)]);
+
+            Assert.AreEqual("Models:\n  Cube  ×1   20.4 × 20.4 × 26.9 mm\n", note);
+        }
+
+        [TestMethod]
+        public void ShouldRenderNothingForAnEmptySuppliedList()
+        {
+            Assert.AreEqual(string.Empty, RenderSupplied(Header, []));
+        }
+
+        [TestMethod]
+        public void ShouldGroupSuppliedBoundsLikeScannedOnes()
+        {
+            var note = RenderSupplied(Header, [
+                new ModelBounds("3DBenchy.drc", 0, 60, 0, 31, 5),
+                new ModelBounds("Cube", 100, 120, 100, 120, 5),
+                new ModelBounds("3DBenchy.drc", 0, 60, 50, 81, 5),
+            ]);
+
+            Assert.AreEqual(
+                "Models:\n" +
+                "  3DBenchy.drc  ×2   60.4 × 31.4 × 5.0 mm\n" +
+                "  Cube          ×1   20.4 × 20.4 × 5.0 mm\n",
+                note);
+        }
+
+        [TestMethod]
+        public void ShouldNotThrowOnNonFiniteSuppliedBounds()
+        {
+            var note = RenderSupplied(Header, [new ModelBounds("Cube", double.NaN, double.PositiveInfinity, double.MinValue, double.MaxValue, double.NegativeInfinity)]);
+
+            StringAssert.StartsWith(note, "Models:\n  Cube  ×1");
+        }
     }
 }

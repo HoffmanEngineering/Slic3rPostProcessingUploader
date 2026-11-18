@@ -57,7 +57,10 @@ namespace PrintLog.SlicerSettings.Computed
         {
             try
             {
-                var locator = new UserPresetLocator(context.ConfigRoots(), context.DebugLog);
+                // Preset files a client supplied replace the config roots; the server has no slicer config of its own.
+                var locator = context.UserPresets != null
+                    ? UserPresetLocator.FromFiles(context.UserPresets, context.DebugLog)
+                    : new UserPresetLocator(context.ConfigRoots(), context.DebugLog);
                 return locator.FindSavedValues(PresetIdentities(settings, parents));
             }
             catch (Exception e)

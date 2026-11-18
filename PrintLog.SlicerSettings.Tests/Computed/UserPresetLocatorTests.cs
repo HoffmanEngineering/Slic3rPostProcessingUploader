@@ -209,5 +209,69 @@ namespace PrintLog.SlicerSettings.Tests.Computed
         {
             Assert.AreEqual(expected, UserPresetLocator.IsSafePresetName(name));
         }
+
+        // ---- Supplied preset files instead of config roots ----
+
+        private UserPresetLocator Supplied(params UserPresetFile[] files) => UserPresetLocator.FromFiles(files, log.Add);
+
+        [TestMethod]
+        public void Supplied_ShouldReadSavedValuesFromTheMatchingFile()
+        {
+            var saved = Supplied(
+                new UserPresetFile("process", "P", """{"wall_loops": "3"}"""),
+                new UserPresetFile("filament", "F", """{"nozzle_temperature": ["215", "215"]}"""))
+                .FindSavedValues([User("process", "P"), User("filament", "F")]);
+
+            Assert.IsNotNull(saved);
+            Assert.IsTrue(saved.IsSaved("wall_loops", "3"));
+            Assert.IsTrue(saved.IsSaved("nozzle_temperature", "215,215"));
+        }
+
+        [TestMethod]
+        public void Supplied_ShouldMatchOnKindAsWellAsName()
+        {
+            Assert.IsNull(Supplied(new UserPresetFile("filament", "P", "{}")).FindSavedValues([User("process", "P")]));
+            Assert.IsTrue(log.Any(l => l.Contains("0 files")), string.Join("\n", log));
+        }
+
+        [TestMethod]
+        public void Supplied_ShouldGiveUpWhenTwoFilesShareKindAndName()
+        {
+            var locator = Supplied(new UserPresetFile("process", "P", """{"wall_loops": "3"}"""), new UserPresetFile("process", "P", """{"wall_loops": "4"}"""));
+
+            Assert.IsNull(locator.FindSavedValues([User("process", "P")]));
+        }
+
+        [TestMethod]
+        [DataRow("{ not json")]
+        [DataRow("[1, 2]")]
+        [DataRow("")]
+        [DataRow(null)]
+        public void Supplied_ShouldGiveUpOnAFileThatIsNotAJsonObject(string? json)
+        {
+            Assert.IsNull(Supplied(new UserPresetFile("process", "P", json!)).FindSavedValues([User("process", "P")]));
+        }
+
+        [TestMethod]
+        public void Supplied_ShouldGiveUpOnDeeplyNestedJson()
+        {
+            var json = "{\"a\":" + new string('[', 10_000) + new string(']', 10_000) + "}";
+
+            Assert.IsNull(Supplied(new UserPresetFile("process", "P", json)).FindSavedValues([User("process", "P")]));
+        }
+
+        [TestMethod]
+        public void Supplied_ShouldRefuseNamesTheDiskLookupRefuses()
+        {
+            Assert.IsNull(Supplied(new UserPresetFile("process", "../P", "{}")).FindSavedValues([User("process", "../P")]));
+        }
+
+        [TestMethod]
+        public void Supplied_ShouldIgnoreNullEntries()
+        {
+            var saved = Supplied(null!, new UserPresetFile("process", "P", """{"wall_loops": "3"}""")).FindSavedValues([User("process", "P")]);
+
+            Assert.IsNotNull(saved);
+        }
     }
 }

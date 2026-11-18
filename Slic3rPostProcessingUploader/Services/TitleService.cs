@@ -1,54 +1,16 @@
 using System.Globalization;
-using System.Text;
+using PrintLog.SlicerSettings;
 
 namespace Slic3rPostProcessingUploader.Services
 {
+    /// <summary>
+    /// The print title rules, which live in the library (<see cref="PrintName"/>) so the API's G-code uploads title a
+    /// print the same way. The uploader titles in the user's culture.
+    /// </summary>
     internal class TitleService
     {
-        public string GetTitle(string? filename)
-        {
-            if (string.IsNullOrEmpty(filename))
-            {
-                return "";
-            }
+        public string GetTitle(string? filename) => PrintName.Title(filename, CultureInfo.CurrentCulture);
 
-            string snakeCaseFilename = ToSnakeCase(filename);
-            string title = string.Join(" ", snakeCaseFilename.Split('_')
-                .Where(segment => !segment.Equals("gcode", StringComparison.OrdinalIgnoreCase))
-                .Select(CultureInfo.CurrentCulture.TextInfo.ToTitleCase))
-                .Trim();
-
-            return title.Length > 100 ? title[..100] : title;
-        }
-
-        public string ToSnakeCase(string? text)
-        {
-            if (string.IsNullOrEmpty(text))
-            {
-                return "";
-            }
-
-            if (text.Length < 2)
-            {
-                return text.ToLowerInvariant();
-            }
-
-            StringBuilder sb = new();
-            sb.Append(char.ToLowerInvariant(text[0]));
-            for (int i = 1; i < text.Length; ++i)
-            {
-                char c = text[i];
-                if (char.IsUpper(c))
-                {
-                    sb.Append('_');
-                    sb.Append(char.ToLowerInvariant(c));
-                }
-                else
-                {
-                    sb.Append(c);
-                }
-            }
-            return sb.ToString();
-        }
+        public string ToSnakeCase(string? text) => PrintName.ToSnakeCase(text);
     }
 }

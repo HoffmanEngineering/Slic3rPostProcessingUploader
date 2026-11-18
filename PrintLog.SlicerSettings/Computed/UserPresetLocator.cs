@@ -49,17 +49,86 @@ namespace PrintLog.SlicerSettings.Computed
     /// Finds the user's own preset files under one or more Orca-family config roots
     /// (<c>&lt;root&gt;/user/&lt;account&gt;/&lt;type&gt;/&lt;name&gt;.json</c>). These files hold only the settings the user
     /// saved over the system parent, which is what separates a saved change from an unsaved plater edit.
+    /// <see cref="FromFiles"/> does the same lookup over preset files a client read on the slicing machine.
     /// </summary>
-    internal sealed class UserPresetLocator(IEnumerable<string> configRoots, Action<string> debugLog)
+    internal sealed class UserPresetLocator
     {
+        /// <summary>
+        /// One file that may hold a preset. <paramref name="Key"/> identifies the file, so a preset the G-code names
+        /// more than once (the same filament in every slot) is read once.
+        /// </summary>
+        private sealed record Candidate(object Key, string Location, Func<JsonDocument> Parse);
+
+        private readonly Action<string> debugLog;
+
+        /// <summary>Called once per <see cref="FindSavedValues"/>; returns the lookup from a preset to its files.</summary>
+        private readonly Func<Func<PresetIdentity, IReadOnlyList<Candidate>>> prepare;
+
+        public UserPresetLocator(IEnumerable<string> configRoots, Action<string> debugLog)
+        {
+            this.debugLog = debugLog;
+            prepare = () =>
+            {
+                var accountDirs = FindAccountDirs(configRoots, debugLog);
+                return preset => accountDirs
+                    .Select(accountDir => Path.Combine(accountDir, preset.Type, preset.Name + ".json"))
+                    .Where(File.Exists)
+                    .Select(path => new Candidate(path, path, () =>
+                    {
+                        using var stream = File.OpenRead(path);
+                        return JsonDocument.Parse(stream);
+                    }))
+                    .ToList();
+            };
+        }
+
+        private UserPresetLocator(Action<string> debugLog, Func<Func<PresetIdentity, IReadOnlyList<Candidate>>> prepare)
+        {
+            this.debugLog = debugLog;
+            this.prepare = prepare;
+        }
+
+        /// <summary>
+        /// A locator over preset files that are already in memory. A file matches a preset when its kind is the
+        /// preset's type folder (<c>process</c>, <c>filament</c>, <c>machine</c>) and its name is the preset name,
+        /// both compared ordinally: the same rule as one file per account folder on disk, so two files with the same
+        /// kind and name are as ambiguous as the same preset under two accounts. Null entries are ignored.
+        /// </summary>
+        public static UserPresetLocator FromFiles(IEnumerable<UserPresetFile?> files, Action<string> debugLog) =>
+            new(debugLog, () =>
+            {
+                var byIdentity = new Dictionary<(string Kind, string Name), List<Candidate>>();
+                int index = 0;
+                foreach (var file in files)
+                {
+                    index++;
+                    if (file == null)
+                    {
+                        continue;
+                    }
+
+                    var key = (file.Kind ?? string.Empty, file.Name ?? string.Empty);
+                    if (!byIdentity.TryGetValue(key, out var list))
+                    {
+                        byIdentity[key] = list = [];
+                    }
+
+                    var json = file.Json;
+                    list.Add(new Candidate(file, $"supplied file {index}", () => JsonDocument.Parse(json)));
+                }
+
+                return preset => byIdentity.TryGetValue((preset.Type, preset.Name), out var list) ? list : [];
+            });
+
         /// <summary>
         /// Returns the saved values across all identities, or null when any user preset cannot be pinned to exactly
         /// one readable file — the caller then falls back to the plain "changed" list rather than guessing.
         /// </summary>
         public SavedPresetValues? FindSavedValues(IEnumerable<PresetIdentity> presets)
         {
-            var accountDirs = FindAccountDirs();
+            var find = prepare();
             var saved = new SavedPresetValues();
+            var read = new HashSet<object>();
 
             foreach (var preset in presets.Where(p => p.IsUserPreset))
             {
@@ -69,24 +138,27 @@ namespace PrintLog.SlicerSettings.Computed
                     return null;
                 }
 
-                var candidates = accountDirs
-                    .Select(accountDir => Path.Combine(accountDir, preset.Type, preset.Name + ".json"))
-                    .Where(File.Exists)
-                    .ToList();
-
+                var candidates = find(preset);
                 if (candidates.Count != 1)
                 {
                     debugLog($"{preset.Type} preset \"{preset.Name}\": {candidates.Count} files found, cannot tell saved from unsaved changes");
                     return null;
                 }
 
+                var candidate = candidates[0];
+                if (!read.Add(candidate.Key))
+                {
+                    continue;
+                }
+
                 try
                 {
-                    ReadValues(candidates[0], saved);
+                    using var document = candidate.Parse();
+                    ReadValues(document, saved);
                 }
-                catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException)
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException or ArgumentException)
                 {
-                    debugLog($"{preset.Type} preset \"{preset.Name}\": could not read {candidates[0]}: {e.Message}");
+                    debugLog($"{preset.Type} preset \"{preset.Name}\": could not read {candidate.Location}: {e.Message}");
                     return null;
                 }
             }
@@ -94,7 +166,7 @@ namespace PrintLog.SlicerSettings.Computed
             return saved;
         }
 
-        private List<string> FindAccountDirs()
+        private static List<string> FindAccountDirs(IEnumerable<string> configRoots, Action<string> debugLog)
         {
             var dirs = new List<string>();
             foreach (var root in configRoots)
@@ -135,10 +207,8 @@ namespace PrintLog.SlicerSettings.Computed
         /// <see cref="JsonDocument"/> tolerates (the first occurrence wins here). Nested objects are not settings and
         /// are skipped.
         /// </summary>
-        private static void ReadValues(string path, SavedPresetValues saved)
+        private static void ReadValues(JsonDocument document, SavedPresetValues saved)
         {
-            using var stream = File.OpenRead(path);
-            using var document = JsonDocument.Parse(stream);
             if (document.RootElement.ValueKind != JsonValueKind.Object)
             {
                 throw new JsonException("preset root is not an object");

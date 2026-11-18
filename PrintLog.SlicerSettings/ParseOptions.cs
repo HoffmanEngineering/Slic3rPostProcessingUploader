@@ -18,6 +18,18 @@ namespace PrintLog.SlicerSettings
         public Func<IEnumerable<string>> ConfigRoots { get; } = configRoots ?? (() => []);
 
         /// <summary>
+        /// Object bounds measured elsewhere (a client scanned the whole file on the slicing machine). When set,
+        /// <c>{{models}}</c> uses these and never opens <see cref="OpenFullGcode"/>.
+        /// </summary>
+        public IReadOnlyList<ModelBounds>? Models { get; init; }
+
+        /// <summary>
+        /// The user's preset files, read elsewhere. When set, <c>{{modified_settings}}</c> looks presets up here and
+        /// never resolves <see cref="ConfigRoots"/>.
+        /// </summary>
+        public IReadOnlyList<UserPresetFile>? UserPresets { get; init; }
+
+        /// <summary>
         /// Options for G-code that is entirely in memory and nothing else: no file access, no config directories.
         /// Used by tests and the single-argument <c>ParseGcode</c> overload, so both are hermetic.
         /// </summary>

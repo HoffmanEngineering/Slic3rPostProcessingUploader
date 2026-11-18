@@ -327,7 +327,14 @@ SlicerConfigResult result = SlicerConfigParser.Parse(configBlock, header); // he
 // result.EstimatedPrintTimeSeconds, result.TotalFilamentMg, result.Filaments
 ```
 
-`SlicerConfigParser`, `SlicerConfigResult` and `FilamentEstimate` are the package's whole public surface. The uploader uses the rest (whole-file parsing, binary G-code, its wire DTO) through `InternalsVisibleTo`, so none of that is a promise to package consumers.
+Since 0.2.0 it also parses a whole G-code file a slicer plugin uploads (the OrcaSlicer plugin), together with the object sizes and preset files the plugin read on the slicing machine, into exactly the `settings` JSON this uploader would post for the same file:
+
+```csharp
+SlicerGcodeResult result = SlicerGcodeParser.Parse(gcode, new SlicerGcodeOptions("default", models, userPresets) { OutputName = outputName });
+// result.Slicer, result.Version, result.IsRecognized, result.SettingsJson
+```
+
+The package's whole public surface is those two entry points and their inputs and results: `SlicerConfigParser`, `SlicerConfigResult`, `FilamentEstimate`, `SlicerGcodeParser`, `SlicerGcodeOptions`, `SlicerGcodeResult`, `ModelBounds` and `UserPresetFile`. The uploader uses the rest (its parse path, binary G-code, its wire DTO) through `InternalsVisibleTo`, so none of that is a promise to package consumers.
 
 The library [README](PrintLog.SlicerSettings/README.md) says which text to pass for each slicer and what a settings block cannot provide (`{{models}}` needs the toolpaths; `{{modified_settings}}` cannot tell saved from unsaved changes without the user's preset files).
 
@@ -336,11 +343,13 @@ The library [README](PrintLog.SlicerSettings/README.md) says which text to pass 
 The library versions independently of the uploader and has its own tag prefix, `lib-v`, which the uploader's `v*` release workflow does not match:
 
 ```bash
-git tag lib-v0.1.0
-git push origin lib-v0.1.0
+git tag lib-v0.2.0
+git push origin lib-v0.2.0
 ```
 
-The [publish-library workflow](.github/workflows/publish-library.yml) builds and runs every test (the uploader is the library's first consumer), packs `PrintLog.SlicerSettings` 0.1.0 with the embedded templates, README and Source Link, and pushes it to nuget.org. nuget.org versions are immutable, so a tag cannot be republished: fix forward with the next version. While the version is 0.x the API may change between minor versions; 1.0.0 is the first release that promises compatibility.
+The version comes only from the tag (the csproj says `0.0.0-dev`, which marks a package not built from one). 0.1.0 has `SlicerConfigParser`; 0.2.0 adds `SlicerGcodeParser` for plugin uploads.
+
+The [publish-library workflow](.github/workflows/publish-library.yml) builds and runs every test (the uploader is the library's first consumer), packs `PrintLog.SlicerSettings` at the tag's version with the embedded templates, README and Source Link, and pushes it to nuget.org. nuget.org versions are immutable, so a tag cannot be republished: fix forward with the next version. While the version is 0.x the API may change between minor versions; 1.0.0 is the first release that promises compatibility.
 
 It publishes with nuget.org [trusted publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing): the job exchanges a GitHub OIDC token for an API key that lives about an hour, so no long-lived key is stored in the repository.
 

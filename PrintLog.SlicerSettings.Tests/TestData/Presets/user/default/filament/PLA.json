@@ -1,0 +1,8 @@
+{
+    "filament_settings_id": ["PLA"],
+    "from": "User",
+    "inherits": "My Generic PLA",
+    "name": "PLA",
+    "nozzle_temperature": ["205"],
+    "version": "2.2.0.4"
+}
